@@ -1,0 +1,174 @@
+syntax = "proto3";
+
+import "nanopb.proto";
+
+package roo_transceivers;
+
+enum Quantity {
+  kUnspecifiedQuantity = 0;
+
+  // Fundamental.
+  kElapsedTime = 1; // [seconds].
+  kMass = 2;        // [kilograms].
+  kTemperature = 3; // [deg C].
+  kFrequency = 4;   // [Hz].
+  kLength = 5;      // [m].
+  kAngle = 6;       // [rad].
+
+  // Displacement.
+  kDistance = 10;     // [m].
+  kVelocity = 11;     // [m/s].
+  kAcceleration = 12; // [m/s^2].
+  kJerk = 13;         // [m/s^3].
+
+  // Force and energy.
+  kForce = 20;    // [N].
+  kPressure = 21; // [Pa].
+  kEnergy = 22;   // [J].
+  kPower = 23;    // [W].
+
+  // Spatial.
+  kArea = 30;   // [m^2].
+  kVolume = 31; // [m^3].
+
+  // Liquids.
+  kLiquidVolume = 40; // [liter].
+  kLiquidFlow = 41;   // [liter/min].
+
+  // Thermodynamics.
+  kHeat = 50; // [J].
+
+  // Magnetism.
+  kMagneticFlux = 60; // [We].
+
+  // Electricity.
+  kElectricCharge = 70;  // [C].
+  kElectricCurrent = 71; // [A].
+  kVoltage = 72;         // [V].
+  kResistance = 73;      // [Ohm].
+  kImpedance = 74;       // [Ohm].
+  kCapacitance = 75;     // [F].
+  kInductance = 76;      // [T].
+
+  // Light.
+  kLuminousIntensity = 90; // [lumen].
+
+  kColorHue = 95;        // [0-360).
+  kColorSaturation = 96; // [0-1].
+  kColorBrightness = 97; // [0-1].
+
+  // Geolocation.
+  kLatitude = 110;  // [-90-90] (North is positive).
+  kLongitude = 111; // [-180-180] (East is positive).
+  kAltitude = 112;  // [m].
+
+  // Environmental.
+  kAirHumidity = 130; // [%].
+
+  // Generic control.
+  kBinaryState = 150; // on/off (0.0 or 1.0).
+  kMultiState = 151;
+}
+
+message Descriptor {
+  message Sensor {
+    string id = 1 [ (nanopb).max_size = 24 ];
+    Quantity quantity = 2;
+  }
+
+  message Actuator {
+    string id = 1 [ (nanopb).max_size = 24 ];
+    Quantity quantity = 2;
+  }
+
+  repeated Sensor sensors = 3 [ (nanopb).max_count = 16 ];
+  repeated Actuator actuators = 4 [ (nanopb).max_count = 16 ];
+}
+
+message ClientMessage {
+  message RequestUpdate {}
+
+  message RequestState {}
+
+  message Write {
+    string device_locator_schema = 1 [ (nanopb).max_size = 16 ];
+    string device_locator_id = 2 [ (nanopb).max_size = 24 ];
+    string device_locator_actuator_id = 3 [ (nanopb).max_size = 24 ];
+    float value = 4;
+  }
+
+  oneof contents {
+    RequestUpdate request_update = 1;
+    RequestState request_state = 2;
+    Write write = 3;
+  }
+}
+
+message ServerMessage {
+  message UpdateBegin { bool delta = 1; }
+
+  message DescriptorAdded {
+    uint32 key = 1;
+    Descriptor descriptor = 2;
+  }
+
+  message DescriptorRemoved { uint32 key = 1; }
+
+  message DeviceAdded {
+    string locator_schema = 1 [ (nanopb).max_size = 16 ];
+    string locator_id = 2 [ (nanopb).max_size = 24 ];
+    uint32 descriptor_key = 3;
+  }
+
+  message DeviceRemoved {
+    uint32 prev_index = 1;
+  }
+
+  message DevicePreserved {
+    uint32 prev_index = 1;
+    optional uint32 count = 2;
+  }
+
+  message DeviceModified {
+    uint32 prev_index = 1;
+    uint32 descriptor_key = 3;
+  }
+
+  message UpdateEnd {}
+
+  message ReadingsBegin {}
+
+  message ReadingsEnd {}
+
+  message Reading {
+    string device_locator_schema = 1 [ (nanopb).max_size = 16 ];
+    string device_locator_id = 2 [ (nanopb).max_size = 24 ];
+
+    message SensorValue {
+      string device_locator_sensor_id = 1 [ (nanopb).max_size = 24 ];
+      float value = 2;
+      uint64 age_ms = 3;
+    }
+
+    repeated SensorValue sensor_values = 3 [ (nanopb).max_count = 16 ];
+  }
+
+  oneof contents {
+    UpdateBegin transceiver_update_begin = 1;
+
+    DescriptorAdded descriptor_added = 2;
+    DescriptorRemoved descriptor_removed = 3;
+
+    // Device device = 4;
+    DeviceAdded device_added = 5;
+    DeviceRemoved device_removed = 6;
+    DevicePreserved device_preserved = 7;
+    DeviceModified device_modified = 8;
+
+    UpdateEnd transceiver_update_end = 9;
+
+    ReadingsBegin readings_begin = 10;
+    Reading reading = 11;
+    ReadingsEnd readings_end = 12;
+  }
+}

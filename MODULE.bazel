@@ -1,0 +1,3 @@
+module(name = "roo_transceivers", version = "1.0")
+
+bazel_dep(name = "nanopb", version = "0.4.9.1")
