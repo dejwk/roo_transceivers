@@ -13,6 +13,15 @@ class ArduinoPreferencesBindingStore : public BindingStore {
   void setSensorBinding(SensorKey key, const SensorLocator& locator) override;
   void clearSensorBinding(SensorKey key) override;
 
+  ActuatorLocator getActuatorBinding(ActuatorKey key) override;
+  void setActuatorBinding(ActuatorKey key,
+                          const ActuatorLocator& locator) override;
+  void clearActuatorBinding(ActuatorKey key) override;
+
+  DeviceLocator getDeviceBinding(DeviceKey key) override;
+  void setDeviceBinding(DeviceKey key, const DeviceLocator& locator) override;
+  void clearDeviceBinding(DeviceKey key) override;
+
  private:
   roo_prefs::Collection collection_;
 };

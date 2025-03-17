@@ -19,4 +19,21 @@ roo_logging::Stream& operator<<(roo_logging::Stream& os,
   return os;
 }
 
+roo_logging::Stream& operator<<(roo_logging::Stream& os,
+                                const ActuatorBinding& binding) {
+  os << binding.key_ << ":";
+  if (binding.isBound()) {
+    os << binding.get();
+  } else {
+    os << "<unbound>";
+  }
+  return os;
+}
+
+roo_logging::Stream& operator<<(roo_logging::Stream& os,
+                                const BoundActuator& actuator) {
+  os << actuator.binding_;
+  return os;
+}
+
 }  // namespace roo_transceivers
