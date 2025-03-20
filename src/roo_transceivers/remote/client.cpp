@@ -20,12 +20,12 @@ UniverseClient::~UniverseClient() {
   channel_.registerServerMessageCallback(nullptr);
 }
 
-int UniverseClient::deviceCount() const {
+size_t UniverseClient::deviceCount() const {
   const std::lock_guard<std::mutex> lock(state_guard_);
   return devices_.size();
 }
 
-void UniverseClient::forEachDevice(
+bool UniverseClient::forEachDevice(
     std::function<bool(const DeviceLocator&)> callback) const {
   size_t i = 0;
   DeviceLocator loc;
@@ -35,12 +35,13 @@ void UniverseClient::forEachDevice(
       // callback tries to call getDescriptor() or something else that grabs the
       // mutex.
       const std::lock_guard<std::mutex> lock(state_guard_);
-      if (i >= devices_.size()) return;
+      if (i >= devices_.size()) break;
       loc = devices_[i].locator;
     }
-    if (!callback(loc)) return;
+    if (!callback(loc)) return false;
     ++i;
   }
+  return true;
 }
 
 const roo_transceivers_Descriptor* UniverseClient::lookupDeviceDescriptor(

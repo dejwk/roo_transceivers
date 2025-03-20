@@ -37,9 +37,9 @@ class UniverseClient : public Universe {
 
   ~UniverseClient();
 
-  int deviceCount() const override;
+  size_t deviceCount() const override;
 
-  void forEachDevice(
+  bool forEachDevice(
       std::function<bool(const DeviceLocator&)> callback) const override;
 
   bool getDeviceDescriptor(

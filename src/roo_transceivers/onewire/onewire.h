@@ -21,16 +21,17 @@ class OneWireUniverse : public SimpleSensorUniverse {
     onewire_.thermometers().addEventListener(&listener_);
   }
 
-  int deviceCount() const override { return onewire_.thermometers().count(); }
+  size_t deviceCount() const override { return onewire_.thermometers().count(); }
 
-  void forEachDevice(std::function<bool(const DeviceLocator&)> callback) const {
+  bool forEachDevice(std::function<bool(const DeviceLocator&)> callback) const {
     char code[17];
     for (const auto& t : onewire_.thermometers()) {
       t.rom_code().toCharArray(code);
       code[16] = 0;
       DeviceLocator locator(kOneWireSchema, code);
-      if (!callback(locator)) return;
+      if (!callback(locator)) return false;
     }
+    return true;
   }
 
   Measurement readSensor(const DeviceLocator& locator) const override {
@@ -48,6 +49,9 @@ class OneWireUniverse : public SimpleSensorUniverse {
 
   roo_transceivers_Quantity getSensorQuantity(
       DeviceLocator device_locator) const override {
+    if (device_locator.schema() != kOneWireSchema) {
+      return roo_transceivers_Quantity_kUnspecifiedQuantity;
+    }
     return roo_transceivers_Quantity_kTemperature;
   }
 
