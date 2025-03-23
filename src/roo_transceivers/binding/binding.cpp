@@ -36,4 +36,10 @@ roo_logging::Stream& operator<<(roo_logging::Stream& os,
   return os;
 }
 
+roo_logging::Stream& operator<<(roo_logging::Stream& os,
+                                const BoundSensingActuator& actuator) {
+  os << actuator.binding_;
+  return os;
+}
+
 }  // namespace roo_transceivers

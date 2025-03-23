@@ -176,7 +176,7 @@ class BoundSensingActuator {
 
  private:
   friend roo_logging::Stream& operator<<(roo_logging::Stream& os,
-                                         const BoundActuator& actuator);
+                                         const BoundSensingActuator& actuator);
 
   Universe& universe_;
   const ActuatorBinding* binding_;
