@@ -62,7 +62,6 @@ class SimpleSensorUniverse : public Universe {
   }
 
   bool write(const ActuatorLocator& locator, float value) const override {
-    LOG(FATAL) << "This device has no actuators.";
     return false;
   }
 
