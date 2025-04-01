@@ -155,3 +155,6 @@ class Multiverse : public Universe, public EventListener {
 };
 
 }  // namespace roo_transceivers
+
+bool operator==(const roo_transceivers_Descriptor& a,
+  const roo_transceivers_Descriptor& b);

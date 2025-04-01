@@ -20,11 +20,6 @@ struct DescriptorHashFn {
   size_t operator()(const roo_transceivers_Descriptor& descriptor) const;
 };
 
-struct DescriptorEq {
-  bool operator()(const roo_transceivers_Descriptor& a,
-                  const roo_transceivers_Descriptor& b) const;
-};
-
 struct DescriptorEntry {
   int key;
   int refcount;
@@ -32,8 +27,7 @@ struct DescriptorEntry {
 
 using DescriptorMap =
     roo_collections::FlatSmallHashMap<roo_transceivers_Descriptor,
-                                      DescriptorEntry, DescriptorHashFn,
-                                      DescriptorEq>;
+                                      DescriptorEntry, DescriptorHashFn>;
 
 class UniverseServerChannel {
  public:
