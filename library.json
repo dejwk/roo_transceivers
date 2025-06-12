@@ -20,7 +20,7 @@
         "type": "git",
         "url": "https://github.com/dejwk/roo_transceivers"
     },
-    "version": "1.0.2",
+    "version": "1.0.3",
     "homepage": "https://github.com/dejwk/roo_transceivers",
     "frameworks": [
         "Arduino"
