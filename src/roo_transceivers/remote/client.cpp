@@ -92,8 +92,12 @@ bool UniverseClient::write(const ActuatorLocator& locator, float value) const {
     int descriptor_key;
     const auto* descriptor =
         lookupDeviceDescriptor(locator.device_locator(), descriptor_key);
-    if (descriptor == nullptr) return false;
+    if (descriptor == nullptr) {
+      LOG(WARNING) << "Attempt to write to an unknown device " << locator;
+      return false;
+    }
     if (!actuators_.contains(locator)) {
+      LOG(WARNING) << "Attempt to write to an unknown actuator " << locator;
       return false;
     }
   }
