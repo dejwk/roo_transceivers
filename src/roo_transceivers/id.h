@@ -31,13 +31,11 @@ class DeviceLocator {
   DeviceId device_id_;
 };
 
-inline bool operator==(const DeviceLocator& a,
-                       const DeviceLocator& b) {
+inline bool operator==(const DeviceLocator& a, const DeviceLocator& b) {
   return a.schema() == b.schema() && a.device_id() == b.device_id();
 }
 
-inline bool operator!=(const DeviceLocator& a,
-                       const DeviceLocator& b) {
+inline bool operator!=(const DeviceLocator& a, const DeviceLocator& b) {
   return !(a == b);
 }
 
@@ -46,22 +44,15 @@ class SensorLocator {
   SensorLocator();
 
   SensorLocator(roo::string_view schema, roo::string_view device_id,
-                           roo::string_view sensor_id);
+                roo::string_view sensor_id);
 
-  SensorLocator(const DeviceLocator& device_loc,
-                           roo::string_view sensor_id);
+  SensorLocator(const DeviceLocator& device_loc, roo::string_view sensor_id);
 
-  const DeviceLocator& device_locator() const {
-    return device_locator_;
-  }
+  const DeviceLocator& device_locator() const { return device_locator_; }
 
-  const DeviceSchema& schema() const {
-    return device_locator_.schema();
-  }
+  const DeviceSchema& schema() const { return device_locator_.schema(); }
 
-  const DeviceId& device_id() const {
-    return device_locator_.device_id();
-  }
+  const DeviceId& device_id() const { return device_locator_.device_id(); }
 
   const SensorId& sensor_id() const { return sensor_id_; }
 
@@ -74,10 +65,13 @@ class SensorLocator {
   SensorId sensor_id_;
 };
 
-inline bool operator==(const SensorLocator& a,
-                       const SensorLocator& b) {
+inline bool operator==(const SensorLocator& a, const SensorLocator& b) {
   return a.device_locator() == b.device_locator() &&
          a.sensor_id() == b.sensor_id();
+}
+
+inline bool operator!=(const SensorLocator& a, const SensorLocator& b) {
+  return !(a == b);
 }
 
 class ActuatorLocator {
@@ -85,23 +79,16 @@ class ActuatorLocator {
   ActuatorLocator();
 
   ActuatorLocator(const DeviceLocator& device_loc,
-                             roo::string_view actuator_id);
+                  roo::string_view actuator_id);
 
-  ActuatorLocator(roo::string_view schema,
-                             roo::string_view device_id,
-                             roo::string_view actuator_id);
+  ActuatorLocator(roo::string_view schema, roo::string_view device_id,
+                  roo::string_view actuator_id);
 
-  const DeviceLocator& device_locator() const {
-    return device_locator_;
-  }
+  const DeviceLocator& device_locator() const { return device_locator_; }
 
-  const DeviceSchema& schema() const {
-    return device_locator_.schema();
-  }
+  const DeviceSchema& schema() const { return device_locator_.schema(); }
 
-  const DeviceId& device_id() const {
-    return device_locator_.device_id();
-  }
+  const DeviceId& device_id() const { return device_locator_.device_id(); }
 
   const ActuatorId& actuator_id() const { return actuator_id_; }
 
@@ -114,10 +101,13 @@ class ActuatorLocator {
   ActuatorId actuator_id_;
 };
 
-inline bool operator==(const ActuatorLocator& a,
-                       const ActuatorLocator& b) {
+inline bool operator==(const ActuatorLocator& a, const ActuatorLocator& b) {
   return a.device_locator() == b.device_locator() &&
          a.actuator_id() == b.actuator_id();
+}
+
+inline bool operator!=(const ActuatorLocator& a, const ActuatorLocator& b) {
+  return !(a == b);
 }
 
 }  // namespace roo_transceivers
@@ -146,8 +136,7 @@ struct hash<roo_transceivers::SensorLocator> {
   size_t operator()(const roo_transceivers::SensorLocator& loc) const {
     return roo_collections::murmur3_32(
         loc.sensor_id().c_str(), strlen(loc.sensor_id().c_str()),
-        std::hash<roo_transceivers::DeviceLocator>()(
-            loc.device_locator()));
+        std::hash<roo_transceivers::DeviceLocator>()(loc.device_locator()));
   }
 };
 
@@ -156,21 +145,20 @@ struct hash<roo_transceivers::ActuatorLocator> {
   size_t operator()(const roo_transceivers::ActuatorLocator& loc) const {
     return roo_collections::murmur3_32(
         loc.actuator_id().c_str(), strlen(loc.actuator_id().c_str()),
-        std::hash<roo_transceivers::DeviceLocator>()(
-            loc.device_locator()));
+        std::hash<roo_transceivers::DeviceLocator>()(loc.device_locator()));
   }
 };
 
 }  // namespace std
 
-roo_logging::Stream& operator<<(
-    roo_logging::Stream& s, const roo_transceivers::DeviceSchema& schema);
+roo_logging::Stream& operator<<(roo_logging::Stream& s,
+                                const roo_transceivers::DeviceSchema& schema);
 
-roo_logging::Stream& operator<<(
-    roo_logging::Stream& s, const roo_transceivers::DeviceLocator& loc);
+roo_logging::Stream& operator<<(roo_logging::Stream& s,
+                                const roo_transceivers::DeviceLocator& loc);
 
-roo_logging::Stream& operator<<(
-    roo_logging::Stream& s, const roo_transceivers::SensorLocator& loc);
+roo_logging::Stream& operator<<(roo_logging::Stream& s,
+                                const roo_transceivers::SensorLocator& loc);
 
-roo_logging::Stream& operator<<(
-    roo_logging::Stream& s, const roo_transceivers::ActuatorLocator& loc);
+roo_logging::Stream& operator<<(roo_logging::Stream& s,
+                                const roo_transceivers::ActuatorLocator& loc);
