@@ -15,7 +15,7 @@ roo_logging::Stream& operator<<(roo_logging::Stream& os,
 
 roo_logging::Stream& operator<<(roo_logging::Stream& os,
                                 const BoundSensor& sensor) {
-  os << sensor.binding_;
+  os << *sensor.binding_;
   return os;
 }
 
@@ -32,13 +32,13 @@ roo_logging::Stream& operator<<(roo_logging::Stream& os,
 
 roo_logging::Stream& operator<<(roo_logging::Stream& os,
                                 const BoundActuator& actuator) {
-  os << actuator.binding_;
+  os << *actuator.binding_;
   return os;
 }
 
 roo_logging::Stream& operator<<(roo_logging::Stream& os,
                                 const BoundSensingActuator& actuator) {
-  os << actuator.binding_;
+  os << *actuator.binding_;
   return os;
 }
 
