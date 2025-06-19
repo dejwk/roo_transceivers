@@ -105,6 +105,12 @@ message ClientMessage {
 }
 
 message ServerMessage {
+  // Sent by the server upon start of the connection.
+  //
+  // If this message is received later, e.g. during an update, it indicates that
+  // the server has been restarted.
+  message Init {}
+
   message UpdateBegin { bool delta = 1; }
 
   message DescriptorAdded {
@@ -120,9 +126,7 @@ message ServerMessage {
     uint32 descriptor_key = 3;
   }
 
-  message DeviceRemoved {
-    uint32 prev_index = 1;
-  }
+  message DeviceRemoved { uint32 prev_index = 1; }
 
   message DevicePreserved {
     uint32 prev_index = 1;
@@ -154,12 +158,12 @@ message ServerMessage {
   }
 
   oneof contents {
-    UpdateBegin transceiver_update_begin = 1;
+    Init init = 1;
+    UpdateBegin transceiver_update_begin = 2;
 
-    DescriptorAdded descriptor_added = 2;
-    DescriptorRemoved descriptor_removed = 3;
+    DescriptorAdded descriptor_added = 3;
+    DescriptorRemoved descriptor_removed = 4;
 
-    // Device device = 4;
     DeviceAdded device_added = 5;
     DeviceRemoved device_removed = 6;
     DevicePreserved device_preserved = 7;

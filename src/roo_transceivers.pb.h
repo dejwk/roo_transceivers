@@ -105,6 +105,14 @@ typedef struct _roo_transceivers_ClientMessage {
     } contents;
 } roo_transceivers_ClientMessage;
 
+/* Sent by the server upon start of the connection.
+
+ If this message is received later, e.g. during an update, it indicates that
+ the server has been restarted. */
+typedef struct _roo_transceivers_ServerMessage_Init {
+    char dummy_field;
+} roo_transceivers_ServerMessage_Init;
+
 typedef struct _roo_transceivers_ServerMessage_UpdateBegin {
     bool delta;
 } roo_transceivers_ServerMessage_UpdateBegin;
@@ -168,10 +176,10 @@ typedef struct _roo_transceivers_ServerMessage_Reading {
 typedef struct _roo_transceivers_ServerMessage {
     pb_size_t which_contents;
     union {
+        roo_transceivers_ServerMessage_Init init;
         roo_transceivers_ServerMessage_UpdateBegin transceiver_update_begin;
         roo_transceivers_ServerMessage_DescriptorAdded descriptor_added;
         roo_transceivers_ServerMessage_DescriptorRemoved descriptor_removed;
-        /* Device device = 4; */
         roo_transceivers_ServerMessage_DeviceAdded device_added;
         roo_transceivers_ServerMessage_DeviceRemoved device_removed;
         roo_transceivers_ServerMessage_DevicePreserved device_preserved;
@@ -216,6 +224,7 @@ extern "C" {
 
 
 
+
 /* Initializer values for message structs */
 #define roo_transceivers_Descriptor_init_default {0, {roo_transceivers_Descriptor_Sensor_init_default, roo_transceivers_Descriptor_Sensor_init_default, roo_transceivers_Descriptor_Sensor_init_default, roo_transceivers_Descriptor_Sensor_init_default, roo_transceivers_Descriptor_Sensor_init_default, roo_transceivers_Descriptor_Sensor_init_default, roo_transceivers_Descriptor_Sensor_init_default, roo_transceivers_Descriptor_Sensor_init_default, roo_transceivers_Descriptor_Sensor_init_default, roo_transceivers_Descriptor_Sensor_init_default, roo_transceivers_Descriptor_Sensor_init_default, roo_transceivers_Descriptor_Sensor_init_default, roo_transceivers_Descriptor_Sensor_init_default, roo_transceivers_Descriptor_Sensor_init_default, roo_transceivers_Descriptor_Sensor_init_default, roo_transceivers_Descriptor_Sensor_init_default}, 0, {roo_transceivers_Descriptor_Actuator_init_default, roo_transceivers_Descriptor_Actuator_init_default, roo_transceivers_Descriptor_Actuator_init_default, roo_transceivers_Descriptor_Actuator_init_default, roo_transceivers_Descriptor_Actuator_init_default, roo_transceivers_Descriptor_Actuator_init_default, roo_transceivers_Descriptor_Actuator_init_default, roo_transceivers_Descriptor_Actuator_init_default, roo_transceivers_Descriptor_Actuator_init_default, roo_transceivers_Descriptor_Actuator_init_default, roo_transceivers_Descriptor_Actuator_init_default, roo_transceivers_Descriptor_Actuator_init_default, roo_transceivers_Descriptor_Actuator_init_default, roo_transceivers_Descriptor_Actuator_init_default, roo_transceivers_Descriptor_Actuator_init_default, roo_transceivers_Descriptor_Actuator_init_default}}
 #define roo_transceivers_Descriptor_Sensor_init_default {"", _roo_transceivers_Quantity_MIN}
@@ -224,7 +233,8 @@ extern "C" {
 #define roo_transceivers_ClientMessage_RequestUpdate_init_default {0}
 #define roo_transceivers_ClientMessage_RequestState_init_default {0}
 #define roo_transceivers_ClientMessage_Write_init_default {"", "", "", 0}
-#define roo_transceivers_ServerMessage_init_default {0, {roo_transceivers_ServerMessage_UpdateBegin_init_default}}
+#define roo_transceivers_ServerMessage_init_default {0, {roo_transceivers_ServerMessage_Init_init_default}}
+#define roo_transceivers_ServerMessage_Init_init_default {0}
 #define roo_transceivers_ServerMessage_UpdateBegin_init_default {0}
 #define roo_transceivers_ServerMessage_DescriptorAdded_init_default {0, false, roo_transceivers_Descriptor_init_default}
 #define roo_transceivers_ServerMessage_DescriptorRemoved_init_default {0}
@@ -244,7 +254,8 @@ extern "C" {
 #define roo_transceivers_ClientMessage_RequestUpdate_init_zero {0}
 #define roo_transceivers_ClientMessage_RequestState_init_zero {0}
 #define roo_transceivers_ClientMessage_Write_init_zero {"", "", "", 0}
-#define roo_transceivers_ServerMessage_init_zero {0, {roo_transceivers_ServerMessage_UpdateBegin_init_zero}}
+#define roo_transceivers_ServerMessage_init_zero {0, {roo_transceivers_ServerMessage_Init_init_zero}}
+#define roo_transceivers_ServerMessage_Init_init_zero {0}
 #define roo_transceivers_ServerMessage_UpdateBegin_init_zero {0}
 #define roo_transceivers_ServerMessage_DescriptorAdded_init_zero {0, false, roo_transceivers_Descriptor_init_zero}
 #define roo_transceivers_ServerMessage_DescriptorRemoved_init_zero {0}
@@ -290,9 +301,10 @@ extern "C" {
 #define roo_transceivers_ServerMessage_Reading_device_locator_schema_tag 1
 #define roo_transceivers_ServerMessage_Reading_device_locator_id_tag 2
 #define roo_transceivers_ServerMessage_Reading_sensor_values_tag 3
-#define roo_transceivers_ServerMessage_transceiver_update_begin_tag 1
-#define roo_transceivers_ServerMessage_descriptor_added_tag 2
-#define roo_transceivers_ServerMessage_descriptor_removed_tag 3
+#define roo_transceivers_ServerMessage_init_tag  1
+#define roo_transceivers_ServerMessage_transceiver_update_begin_tag 2
+#define roo_transceivers_ServerMessage_descriptor_added_tag 3
+#define roo_transceivers_ServerMessage_descriptor_removed_tag 4
 #define roo_transceivers_ServerMessage_device_added_tag 5
 #define roo_transceivers_ServerMessage_device_removed_tag 6
 #define roo_transceivers_ServerMessage_device_preserved_tag 7
@@ -352,9 +364,10 @@ X(a, STATIC,   SINGULAR, FLOAT,    value,             4)
 #define roo_transceivers_ClientMessage_Write_DEFAULT NULL
 
 #define roo_transceivers_ServerMessage_FIELDLIST(X, a) \
-X(a, STATIC,   ONEOF,    MESSAGE,  (contents,transceiver_update_begin,contents.transceiver_update_begin),   1) \
-X(a, STATIC,   ONEOF,    MESSAGE,  (contents,descriptor_added,contents.descriptor_added),   2) \
-X(a, STATIC,   ONEOF,    MESSAGE,  (contents,descriptor_removed,contents.descriptor_removed),   3) \
+X(a, STATIC,   ONEOF,    MESSAGE,  (contents,init,contents.init),   1) \
+X(a, STATIC,   ONEOF,    MESSAGE,  (contents,transceiver_update_begin,contents.transceiver_update_begin),   2) \
+X(a, STATIC,   ONEOF,    MESSAGE,  (contents,descriptor_added,contents.descriptor_added),   3) \
+X(a, STATIC,   ONEOF,    MESSAGE,  (contents,descriptor_removed,contents.descriptor_removed),   4) \
 X(a, STATIC,   ONEOF,    MESSAGE,  (contents,device_added,contents.device_added),   5) \
 X(a, STATIC,   ONEOF,    MESSAGE,  (contents,device_removed,contents.device_removed),   6) \
 X(a, STATIC,   ONEOF,    MESSAGE,  (contents,device_preserved,contents.device_preserved),   7) \
@@ -365,6 +378,7 @@ X(a, STATIC,   ONEOF,    MESSAGE,  (contents,reading,contents.reading),  11) \
 X(a, STATIC,   ONEOF,    MESSAGE,  (contents,readings_end,contents.readings_end),  12)
 #define roo_transceivers_ServerMessage_CALLBACK NULL
 #define roo_transceivers_ServerMessage_DEFAULT NULL
+#define roo_transceivers_ServerMessage_contents_init_MSGTYPE roo_transceivers_ServerMessage_Init
 #define roo_transceivers_ServerMessage_contents_transceiver_update_begin_MSGTYPE roo_transceivers_ServerMessage_UpdateBegin
 #define roo_transceivers_ServerMessage_contents_descriptor_added_MSGTYPE roo_transceivers_ServerMessage_DescriptorAdded
 #define roo_transceivers_ServerMessage_contents_descriptor_removed_MSGTYPE roo_transceivers_ServerMessage_DescriptorRemoved
@@ -376,6 +390,11 @@ X(a, STATIC,   ONEOF,    MESSAGE,  (contents,readings_end,contents.readings_end)
 #define roo_transceivers_ServerMessage_contents_readings_begin_MSGTYPE roo_transceivers_ServerMessage_ReadingsBegin
 #define roo_transceivers_ServerMessage_contents_reading_MSGTYPE roo_transceivers_ServerMessage_Reading
 #define roo_transceivers_ServerMessage_contents_readings_end_MSGTYPE roo_transceivers_ServerMessage_ReadingsEnd
+
+#define roo_transceivers_ServerMessage_Init_FIELDLIST(X, a) \
+
+#define roo_transceivers_ServerMessage_Init_CALLBACK NULL
+#define roo_transceivers_ServerMessage_Init_DEFAULT NULL
 
 #define roo_transceivers_ServerMessage_UpdateBegin_FIELDLIST(X, a) \
 X(a, STATIC,   SINGULAR, BOOL,     delta,             1)
@@ -456,6 +475,7 @@ extern const pb_msgdesc_t roo_transceivers_ClientMessage_RequestUpdate_msg;
 extern const pb_msgdesc_t roo_transceivers_ClientMessage_RequestState_msg;
 extern const pb_msgdesc_t roo_transceivers_ClientMessage_Write_msg;
 extern const pb_msgdesc_t roo_transceivers_ServerMessage_msg;
+extern const pb_msgdesc_t roo_transceivers_ServerMessage_Init_msg;
 extern const pb_msgdesc_t roo_transceivers_ServerMessage_UpdateBegin_msg;
 extern const pb_msgdesc_t roo_transceivers_ServerMessage_DescriptorAdded_msg;
 extern const pb_msgdesc_t roo_transceivers_ServerMessage_DescriptorRemoved_msg;
@@ -478,6 +498,7 @@ extern const pb_msgdesc_t roo_transceivers_ServerMessage_Reading_SensorValue_msg
 #define roo_transceivers_ClientMessage_RequestState_fields &roo_transceivers_ClientMessage_RequestState_msg
 #define roo_transceivers_ClientMessage_Write_fields &roo_transceivers_ClientMessage_Write_msg
 #define roo_transceivers_ServerMessage_fields &roo_transceivers_ServerMessage_msg
+#define roo_transceivers_ServerMessage_Init_fields &roo_transceivers_ServerMessage_Init_msg
 #define roo_transceivers_ServerMessage_UpdateBegin_fields &roo_transceivers_ServerMessage_UpdateBegin_msg
 #define roo_transceivers_ServerMessage_DescriptorAdded_fields &roo_transceivers_ServerMessage_DescriptorAdded_msg
 #define roo_transceivers_ServerMessage_DescriptorRemoved_fields &roo_transceivers_ServerMessage_DescriptorRemoved_msg
@@ -506,6 +527,7 @@ extern const pb_msgdesc_t roo_transceivers_ServerMessage_Reading_SensorValue_msg
 #define roo_transceivers_ServerMessage_DeviceModified_size 12
 #define roo_transceivers_ServerMessage_DevicePreserved_size 12
 #define roo_transceivers_ServerMessage_DeviceRemoved_size 6
+#define roo_transceivers_ServerMessage_Init_size 0
 #define roo_transceivers_ServerMessage_Reading_SensorValue_size 41
 #define roo_transceivers_ServerMessage_Reading_size 730
 #define roo_transceivers_ServerMessage_ReadingsBegin_size 0

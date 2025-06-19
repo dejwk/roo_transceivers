@@ -30,6 +30,9 @@ PB_BIND(roo_transceivers_ClientMessage_Write, roo_transceivers_ClientMessage_Wri
 PB_BIND(roo_transceivers_ServerMessage, roo_transceivers_ServerMessage, 2)
 
 
+PB_BIND(roo_transceivers_ServerMessage_Init, roo_transceivers_ServerMessage_Init, AUTO)
+
+
 PB_BIND(roo_transceivers_ServerMessage_UpdateBegin, roo_transceivers_ServerMessage_UpdateBegin, AUTO)
 
 
