@@ -40,6 +40,7 @@ UniverseServer::UniverseServer(Universe& universe,
       transmission_in_progress_(false),
       device_update_pending_(false),
       readings_pending_(false) {
+  transmitInit();
   channel.registerClientMessageCallback(
       [this](const roo_transceivers_ClientMessage& msg) {
         handleClientMessage(msg);
@@ -256,6 +257,12 @@ void UniverseServer::State::removeDescriptorReference(
   descriptors_by_key_.erase(key);
   descriptors_.erase(descriptor);
   newDescriptorDelta(key, State::DescriptorDelta::REMOVED);
+}
+
+void UniverseServer::transmitInit() {
+  roo_transceivers_ServerMessage msg = roo_transceivers_ServerMessage_init_zero;
+  msg.which_contents = roo_transceivers_ServerMessage_init_tag;
+  channel_.sendServerMessage(msg);
 }
 
 void UniverseServer::transmitUpdateBegin(bool delta) {

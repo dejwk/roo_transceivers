@@ -248,6 +248,9 @@ class UniverseServer : public EventListener {
   void snapshotDevices();
   void snapshotSensorState();
 
+  // Send the handhake message.
+  void transmitInit();
+
   void transmissionLoop();
 
   // Sends a single delta or snapshot over the channel.

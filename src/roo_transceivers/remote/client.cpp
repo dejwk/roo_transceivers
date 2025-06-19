@@ -149,6 +149,10 @@ void UniverseClient::notifyReadingsAvailable() {
 void UniverseClient::handleServerMessage(
     const roo_transceivers_ServerMessage& msg) {
   switch (msg.which_contents) {
+    case roo_transceivers_ServerMessage_init_tag: {
+      handleInit();
+      break;
+    }
     case roo_transceivers_ServerMessage_transceiver_update_begin_tag: {
       if (!msg.contents.transceiver_update_begin.delta) {
         clearAll();
@@ -214,6 +218,14 @@ void UniverseClient::handleServerMessage(
       LOG(ERROR) << "Unexpected server message " << msg.which_contents;
       break;
     }
+  }
+}
+
+void UniverseClient::handleInit() {
+  {
+    // Cancel the update, if any pending.
+    std::lock_guard<std::mutex> lock(state_guard_);
+    updated_devices_.clear();
   }
 }
 

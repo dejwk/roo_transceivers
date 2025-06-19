@@ -65,6 +65,8 @@ class UniverseClient : public Universe {
   // Called when a message is received from the server.
   void handleServerMessage(const roo_transceivers_ServerMessage& msg);
 
+  void handleInit();
+
   void handleDescriptorAdded(int key,
                              const roo_transceivers_Descriptor& descriptor);
 
