@@ -3,6 +3,7 @@
 #include <cstdio>
 
 #include "roo_backport.h"
+#include "roo_backport/string_view.h"
 
 namespace roo_transceivers {
 
