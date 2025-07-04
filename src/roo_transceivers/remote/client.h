@@ -1,7 +1,6 @@
 #pragma once
 
 #include <functional>
-#include <mutex>
 #include <vector>
 
 #include "roo_collections/flat_small_hash_map.h"
@@ -9,6 +8,7 @@
 #include "roo_transceivers/id.h"
 #include "roo_transceivers/notification.h"
 #include "roo_transceivers/universe.h"
+#include "roo_threads/mutex.h"
 
 namespace roo_transceivers {
 
@@ -131,8 +131,8 @@ class UniverseClient : public Universe {
   // Event listeners for state updates.
   roo_collections::FlatSmallHashSet<EventListener*> listeners_;
 
-  mutable std::mutex state_guard_;
-  mutable std::mutex listener_guard_;
+  mutable roo::mutex state_guard_;
+  mutable roo::mutex listener_guard_;
 };
 
 }  // namespace roo_transceivers

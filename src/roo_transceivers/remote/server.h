@@ -1,8 +1,8 @@
 #pragma once
 
 #include <functional>
-#include <mutex>
 #include <vector>
+#include "roo_threads/mutex.h"
 
 #include "roo_transceivers/notification.h"
 #include "roo_transceivers/universe.h"
@@ -71,6 +71,8 @@ class UniverseServer : public EventListener {
                  Executor& transmit_executor);
 
   ~UniverseServer();
+
+  void begin();
 
   void devicesChanged() override;
   void newReadingsAvailable() override;
@@ -282,7 +284,7 @@ class UniverseServer : public EventListener {
   bool device_update_pending_;
   bool readings_pending_;
 
-  mutable std::mutex state_guard_;
+  mutable roo::mutex state_guard_;
 };
 
 }  // namespace roo_transceivers

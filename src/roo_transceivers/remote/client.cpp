@@ -21,7 +21,7 @@ UniverseClient::~UniverseClient() {
 }
 
 size_t UniverseClient::deviceCount() const {
-  const std::lock_guard<std::mutex> lock(state_guard_);
+  const roo::lock_guard<roo::mutex> lock(state_guard_);
   return devices_.size();
 }
 
@@ -34,7 +34,7 @@ bool UniverseClient::forEachDevice(
       // Can't hold mutex for the entire iteration, b/c of deadlocks, when the
       // callback tries to call getDescriptor() or something else that grabs the
       // mutex.
-      const std::lock_guard<std::mutex> lock(state_guard_);
+      const roo::lock_guard<roo::mutex> lock(state_guard_);
       if (i >= devices_.size()) break;
       loc = devices_[i].locator;
     }
@@ -64,7 +64,7 @@ const roo_transceivers_Descriptor* UniverseClient::lookupDeviceDescriptor(
 bool UniverseClient::getDeviceDescriptor(
     const DeviceLocator& locator,
     roo_transceivers_Descriptor& descriptor) const {
-  const std::lock_guard<std::mutex> lock(state_guard_);
+  const roo::lock_guard<roo::mutex> lock(state_guard_);
   int descriptor_key;
   const auto* result = lookupDeviceDescriptor(locator, descriptor_key);
   if (result == nullptr) return false;
@@ -73,7 +73,7 @@ bool UniverseClient::getDeviceDescriptor(
 }
 
 Measurement UniverseClient::read(const SensorLocator& locator) const {
-  const std::lock_guard<std::mutex> lock(state_guard_);
+  const roo::lock_guard<roo::mutex> lock(state_guard_);
   int descriptor_key;
   const auto* descriptor =
       lookupDeviceDescriptor(locator.device_locator(), descriptor_key);
@@ -87,7 +87,7 @@ Measurement UniverseClient::read(const SensorLocator& locator) const {
 
 bool UniverseClient::write(const ActuatorLocator& locator, float value) const {
   {
-    const std::lock_guard<std::mutex> lock(state_guard_);
+    const roo::lock_guard<roo::mutex> lock(state_guard_);
 
     int descriptor_key;
     const auto* descriptor =
@@ -123,24 +123,24 @@ void UniverseClient::requestUpdate() {
 }
 
 void UniverseClient::addEventListener(EventListener* listener) {
-  const std::lock_guard<std::mutex> lock(listener_guard_);
+  const roo::lock_guard<roo::mutex> lock(listener_guard_);
   listeners_.insert(listener);
 }
 
 void UniverseClient::removeEventListener(EventListener* listener) {
-  const std::lock_guard<std::mutex> lock(listener_guard_);
+  const roo::lock_guard<roo::mutex> lock(listener_guard_);
   listeners_.erase(listener);
 }
 
 void UniverseClient::notifyDevicesChanged() {
-  const std::lock_guard<std::mutex> lock(listener_guard_);
+  const roo::lock_guard<roo::mutex> lock(listener_guard_);
   for (auto* listener : listeners_) {
     listener->devicesChanged();
   }
 }
 
 void UniverseClient::notifyReadingsAvailable() {
-  const std::lock_guard<std::mutex> lock(listener_guard_);
+  const roo::lock_guard<roo::mutex> lock(listener_guard_);
   for (auto* listener : listeners_) {
     listener->newReadingsAvailable();
   }
@@ -224,14 +224,14 @@ void UniverseClient::handleServerMessage(
 void UniverseClient::handleInit() {
   {
     // Cancel the update, if any pending.
-    std::lock_guard<std::mutex> lock(state_guard_);
+    roo::lock_guard<roo::mutex> lock(state_guard_);
     updated_devices_.clear();
   }
 }
 
 void UniverseClient::handleUpdateEnd() {
   {
-    std::lock_guard<std::mutex> lock(state_guard_);
+    roo::lock_guard<roo::mutex> lock(state_guard_);
     devices_.swap(updated_devices_);
     updated_devices_.clear();
     device_idx_by_locator_.clear();
@@ -245,13 +245,13 @@ void UniverseClient::handleUpdateEnd() {
 void UniverseClient::handleDescriptorAdded(
     int key, const roo_transceivers_Descriptor& descriptor) {
   MLOG(roo_transceivers_remote_client) << "Received added descriptor";
-  const std::lock_guard<std::mutex> lock(state_guard_);
+  const roo::lock_guard<roo::mutex> lock(state_guard_);
   descriptors_[key] = descriptor;
 }
 
 void UniverseClient::handleDescriptorRemoved(int key) {
   MLOG(roo_transceivers_remote_client) << "Received removed descriptor";
-  const std::lock_guard<std::mutex> lock(state_guard_);
+  const roo::lock_guard<roo::mutex> lock(state_guard_);
   // At this point we do not expect to have any devices pointing to this
   // descriptor.
   descriptors_.erase(key);
@@ -260,7 +260,7 @@ void UniverseClient::handleDescriptorRemoved(int key) {
 void UniverseClient::handleDeviceAdded(const DeviceLocator& locator,
                                        int descriptor_key) {
   MLOG(roo_transceivers_remote_client) << "Received added device " << locator;
-  const std::lock_guard<std::mutex> lock(state_guard_);
+  const roo::lock_guard<roo::mutex> lock(state_guard_);
   auto itr = descriptors_.find(descriptor_key);
   if (itr == descriptors_.end()) {
     LOG(ERROR) << "Unknown descriptor key " << descriptor_key;
@@ -305,7 +305,7 @@ void UniverseClient::handleDeviceRemoved(int prev_index) {
 }
 
 void UniverseClient::handleDevicePreserved(int prev_index_first, size_t count) {
-  const std::lock_guard<std::mutex> lock(state_guard_);
+  const roo::lock_guard<roo::mutex> lock(state_guard_);
   MLOG(roo_transceivers_remote_client)
       << "Received preserved devices (" << count << " at " << prev_index_first
       << ")";
@@ -317,13 +317,13 @@ void UniverseClient::handleDevicePreserved(int prev_index_first, size_t count) {
 void UniverseClient::handleDeviceModified(int prev_index, int descriptor_key) {
   MLOG(roo_transceivers_remote_client)
       << "Received modified device at " << prev_index;
-  const std::lock_guard<std::mutex> lock(state_guard_);
+  const roo::lock_guard<roo::mutex> lock(state_guard_);
   updated_devices_.push_back(
       DeviceEntry{devices_[prev_index].locator, descriptor_key});
 }
 
 void UniverseClient::clearAll() {
-  const std::lock_guard<std::mutex> lock(state_guard_);
+  const roo::lock_guard<roo::mutex> lock(state_guard_);
   descriptors_.clear();
   devices_.clear();
   updated_devices_.clear();
@@ -336,7 +336,7 @@ void UniverseClient::handleReadings(
     const DeviceLocator& device,
     const roo_transceivers_ServerMessage_Reading_SensorValue* readings,
     size_t readings_count) {
-  const std::lock_guard<std::mutex> lock(state_guard_);
+  const roo::lock_guard<roo::mutex> lock(state_guard_);
   int descriptor_key;
   const roo_transceivers_Descriptor* descriptor =
       lookupDeviceDescriptor(device, descriptor_key);

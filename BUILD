@@ -16,6 +16,7 @@ cc_library(
         "//lib/roo_collections",
         "//lib/roo_logging",
         "//lib/roo_prefs",
+        "//lib/roo_threads",
         "//roo_testing:arduino",
         "@nanopb//:nanopb"
     ],

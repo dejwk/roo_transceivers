@@ -40,7 +40,6 @@ UniverseServer::UniverseServer(Universe& universe,
       transmission_in_progress_(false),
       device_update_pending_(false),
       readings_pending_(false) {
-  transmitInit();
   channel.registerClientMessageCallback(
       [this](const roo_transceivers_ClientMessage& msg) {
         handleClientMessage(msg);
@@ -53,9 +52,11 @@ UniverseServer::~UniverseServer() {
   universe_.removeEventListener(this);
 }
 
+void UniverseServer::begin() { transmitInit(); }
+
 void UniverseServer::devicesChanged() {
   {
-    std::lock_guard<std::mutex> lock(state_guard_);
+    roo::lock_guard<roo::mutex> lock(state_guard_);
     if (transmission_in_progress_) {
       device_update_pending_ = true;
       return;
@@ -71,7 +72,7 @@ void UniverseServer::devicesChanged() {
 
 void UniverseServer::newReadingsAvailable() {
   {
-    std::lock_guard<std::mutex> lock(state_guard_);
+    roo::lock_guard<roo::mutex> lock(state_guard_);
     if (transmission_in_progress_) {
       readings_pending_ = true;
       return;
@@ -110,7 +111,7 @@ void UniverseServer::handleClientMessage(
 
 void UniverseServer::handleRequestState() {
   {
-    std::lock_guard<std::mutex> lock(state_guard_);
+    roo::lock_guard<roo::mutex> lock(state_guard_);
     if (transmission_in_progress_) {
       full_snapshot_requested_ = true;
       return;
@@ -358,14 +359,14 @@ void UniverseServer::transmitReadingsEnd() {
 void UniverseServer::transmissionLoop() {
   bool is_delta;
   {
-    std::lock_guard<std::mutex> lock(state_guard_);
+    roo::lock_guard<roo::mutex> lock(state_guard_);
     CHECK(transmission_in_progress_);
     is_delta = !is_full_snapshot_;
   }
   while (true) {
     transmit(is_delta);
     {
-      std::lock_guard<std::mutex> lock(state_guard_);
+      roo::lock_guard<roo::mutex> lock(state_guard_);
       CHECK(transmission_in_progress_);
       if (full_snapshot_requested_) {
         state_.clearAll();
