@@ -28,7 +28,7 @@ class Universe {
 
   virtual Measurement read(const SensorLocator& locator) const = 0;
 
-  virtual bool write(const ActuatorLocator& locator, float value) const = 0;
+  virtual bool write(const ActuatorLocator& locator, float value) = 0;
 
   virtual void requestUpdate() = 0;
 
@@ -61,7 +61,7 @@ class SimpleSensorUniverse : public Universe {
     return readSensor(locator.device_locator());
   }
 
-  bool write(const ActuatorLocator& locator, float value) const override {
+  bool write(const ActuatorLocator& locator, float value) override {
     return false;
   }
 
@@ -116,7 +116,7 @@ class Multiverse : public Universe, public EventListener {
     return Measurement();
   }
 
-  bool write(const ActuatorLocator& locator, float value) const override {
+  bool write(const ActuatorLocator& locator, float value) override {
     for (const auto& universe : universes_) {
       if (universe->write(locator, value)) return true;
     }
@@ -157,4 +157,4 @@ class Multiverse : public Universe, public EventListener {
 }  // namespace roo_transceivers
 
 bool operator==(const roo_transceivers_Descriptor& a,
-  const roo_transceivers_Descriptor& b);
+                const roo_transceivers_Descriptor& b);

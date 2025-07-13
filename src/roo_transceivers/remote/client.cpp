@@ -85,7 +85,7 @@ Measurement UniverseClient::read(const SensorLocator& locator) const {
   return itr->second;
 }
 
-bool UniverseClient::write(const ActuatorLocator& locator, float value) const {
+bool UniverseClient::write(const ActuatorLocator& locator, float value) {
   {
     const roo::lock_guard<roo::mutex> lock(state_guard_);
 

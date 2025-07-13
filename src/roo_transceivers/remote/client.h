@@ -48,7 +48,7 @@ class UniverseClient : public Universe {
 
   Measurement read(const SensorLocator& locator) const override;
 
-  bool write(const ActuatorLocator& locator, float value) const override;
+  bool write(const ActuatorLocator& locator, float value) override;
 
   void requestUpdate() override;
 
