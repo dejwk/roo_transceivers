@@ -13,8 +13,14 @@ void DeviceLocator::write_cstr(char* buf) const {
   size_t len = strlen(buf);
   if (len > 0) {
     buf[len++] = ':';
-    strncpy(buf + len, device_id_.c_str(), 24);
   }
+  strncpy(buf + len, device_id_.c_str(), 24);
+}
+
+std::string DeviceLocator::toString() const {
+  char buf[DeviceSchema::kCapacity];
+  write_cstr(buf);
+  return std::string(buf);
 }
 
 SensorLocator::SensorLocator() : device_locator_(), sensor_id_() {}
@@ -37,6 +43,12 @@ void SensorLocator::write_cstr(char* buf) const {
   }
 }
 
+std::string SensorLocator::toString() const {
+  char buf[DeviceSchema::kCapacity + 1 + SensorId::kCapacity];
+  write_cstr(buf);
+  return std::string(buf);
+}
+
 ActuatorLocator::ActuatorLocator() : device_locator_(), actuator_id_() {}
 
 ActuatorLocator::ActuatorLocator(const DeviceLocator& device_loc,
@@ -55,6 +67,12 @@ void ActuatorLocator::write_cstr(char* buf) const {
     buf[len++] = '/';
     strncpy(buf + len, actuator_id_.c_str(), 24);
   }
+}
+
+std::string ActuatorLocator::toString() const {
+  char buf[DeviceSchema::kCapacity + 1 + ActuatorId::kCapacity];
+  write_cstr(buf);
+  return std::string(buf);
 }
 
 }  // namespace roo_transceivers

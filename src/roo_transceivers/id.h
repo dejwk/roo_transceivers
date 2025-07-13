@@ -22,9 +22,11 @@ class DeviceLocator {
   const DeviceSchema& schema() const { return schema_; }
   const DeviceId& device_id() const { return device_id_; }
 
-  bool isDefined() const { return !schema_.empty(); }
+  bool isDefined() const { return !schema_.empty() || !device_id().empty(); }
 
   void write_cstr(char* buf) const;
+
+  std::string toString() const;
 
  private:
   DeviceSchema schema_;
@@ -59,6 +61,8 @@ class SensorLocator {
   bool isDefined() const { return device_locator().isDefined(); }
 
   void write_cstr(char* buf) const;
+
+  std::string toString() const;
 
  private:
   DeviceLocator device_locator_;
@@ -95,6 +99,8 @@ class ActuatorLocator {
   bool isDefined() const { return device_locator().isDefined(); }
 
   void write_cstr(char* buf) const;
+
+  std::string toString() const;
 
  private:
   DeviceLocator device_locator_;
