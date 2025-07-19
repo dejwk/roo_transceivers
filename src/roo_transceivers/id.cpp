@@ -14,11 +14,11 @@ void DeviceLocator::write_cstr(char* buf) const {
   if (len > 0) {
     buf[len++] = ':';
   }
-  strncpy(buf + len, device_id_.c_str(), 24);
+  strncpy(buf + len, device_id_.c_str(), DeviceId::kCapacity);
 }
 
 std::string DeviceLocator::toString() const {
-  char buf[DeviceSchema::kCapacity];
+  char buf[DeviceSchema::kCapacity + 1 + DeviceId::kCapacity];
   write_cstr(buf);
   return std::string(buf);
 }
@@ -39,12 +39,13 @@ void SensorLocator::write_cstr(char* buf) const {
   size_t len = strlen(buf);
   if (len > 0 && !sensor_id_.empty()) {
     buf[len++] = '/';
-    strncpy(buf + len, sensor_id_.c_str(), 24);
+    strncpy(buf + len, sensor_id_.c_str(), SensorId::kCapacity);
   }
 }
 
 std::string SensorLocator::toString() const {
-  char buf[DeviceSchema::kCapacity + 1 + SensorId::kCapacity];
+  char buf[DeviceSchema::kCapacity + 1 + DeviceId::kCapacity + 1 +
+           SensorId::kCapacity];
   write_cstr(buf);
   return std::string(buf);
 }
@@ -65,12 +66,13 @@ void ActuatorLocator::write_cstr(char* buf) const {
   size_t len = strlen(buf);
   if (len > 0 && !actuator_id_.empty()) {
     buf[len++] = '/';
-    strncpy(buf + len, actuator_id_.c_str(), 24);
+    strncpy(buf + len, actuator_id_.c_str(), ActuatorId::kCapacity);
   }
 }
 
 std::string ActuatorLocator::toString() const {
-  char buf[DeviceSchema::kCapacity + 1 + ActuatorId::kCapacity];
+  char buf[DeviceSchema::kCapacity + 1 + DeviceId::kCapacity + 1 +
+           ActuatorId::kCapacity];
   write_cstr(buf);
   return std::string(buf);
 }
