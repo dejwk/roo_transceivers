@@ -2,8 +2,8 @@
 
 #include <functional>
 #include <vector>
-#include "roo_threads/mutex.h"
 
+#include "roo_threads/mutex.h"
 #include "roo_transceivers/notification.h"
 #include "roo_transceivers/universe.h"
 
@@ -84,7 +84,7 @@ class UniverseServer : public EventListener {
 
     void addDevice(const DeviceLocator& loc,
                    const roo_transceivers_Descriptor& descriptor, int ordinal) {
-      newDeviceDelta(loc, DeviceDelta::ADDED);
+      newDeviceDelta(loc, DeviceDelta::ADDED, -1);
       int key = addDescriptorReference(descriptor);
       addDeviceEntry(loc, ordinal, key);
     }
@@ -97,7 +97,7 @@ class UniverseServer : public EventListener {
     }
 
     void removeDevice(const DeviceLocator& loc) {
-      newDeviceDelta(loc, State::DeviceDelta::REMOVED);
+      newDeviceDelta(loc, State::DeviceDelta::REMOVED, -1);
       int old_descriptor_key = devices_[loc].descriptor_key;
       const roo_transceivers_Descriptor& old_descriptor =
           descriptors_by_key_[old_descriptor_key];
@@ -161,6 +161,7 @@ class UniverseServer : public EventListener {
       enum Status { ADDED, REMOVED, PRESERVED, MODIFIED };
       DeviceLocator locator;
       Status status;
+      int old_ordinal;  // For PRESERVED.
     };
 
     struct DescriptorDelta {
@@ -180,8 +181,9 @@ class UniverseServer : public EventListener {
       size_t reading_count;
     };
 
-    void newDeviceDelta(const DeviceLocator& loc, DeviceDelta::Status status) {
-      device_deltas_.emplace_back(DeviceDelta{loc, status});
+    void newDeviceDelta(const DeviceLocator& loc, DeviceDelta::Status status,
+                        int old_ordinal) {
+      device_deltas_.emplace_back(DeviceDelta{loc, status, old_ordinal});
     }
 
     void newDescriptorDelta(int key, DescriptorDelta::Status kind) {

@@ -78,7 +78,9 @@ void UniverseServer::newReadingsAvailable() {
       return;
     }
     state_.clearDelta();
+    snapshotDevices();
     snapshotSensorState();
+
     is_full_snapshot_ = false;
     transmission_in_progress_ = true;
   }
@@ -182,11 +184,13 @@ void UniverseServer::snapshotDevices() {
           state_.descriptors_by_key()[old_descriptor_key];
       // Check if the descriptor changed.
       if (old_descriptor == descriptor) {
-        state_.newDeviceDelta(loc, State::DeviceDelta::PRESERVED);
+        state_.newDeviceDelta(loc, State::DeviceDelta::PRESERVED,
+                              existing->second.ordinal);
+        state_.addDeviceEntry(loc, ordinal, old_descriptor_key);
       } else {
         // Changed, indeed. Need to deref the old descriptor, and reference
         // the new one.
-        state_.newDeviceDelta(loc, State::DeviceDelta::MODIFIED);
+        state_.newDeviceDelta(loc, State::DeviceDelta::MODIFIED, -1);
         state_.removeReadings(loc, old_descriptor);
         state_.removeDescriptorReference(old_descriptor);
         int key = state_.addDescriptorReference(descriptor);
@@ -362,6 +366,7 @@ void UniverseServer::transmissionLoop() {
     roo::lock_guard<roo::mutex> lock(state_guard_);
     CHECK(transmission_in_progress_);
     is_delta = !is_full_snapshot_;
+    is_full_snapshot_ = false;
   }
   while (true) {
     transmit(is_delta);
@@ -413,13 +418,13 @@ void UniverseServer::transmit(bool is_delta) {
           break;
         }
         case State::DeviceDelta::PRESERVED: {
-          int preserved_first_ordinal = device.ordinal;
+          int preserved_first_ordinal = delta.old_ordinal;
           size_t preserved_count = 1;
           while (i + 1 < delta_count) {
             const auto& next_delta = state_.device_deltas()[i + 1];
-            const auto& next_device = state_.devices()[next_delta.locator];
+            // const auto& next_device = state_.devices()[next_delta.locator];
             if (next_delta.status != State::DeviceDelta::PRESERVED ||
-                next_device.ordinal != device.ordinal + preserved_count) {
+                next_delta.old_ordinal != delta.old_ordinal + preserved_count) {
               break;
             }
             ++i;
