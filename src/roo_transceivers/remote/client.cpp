@@ -93,7 +93,7 @@ bool UniverseClient::write(const ActuatorLocator& locator, float value) {
     const auto* descriptor =
         lookupDeviceDescriptor(locator.device_locator(), descriptor_key);
     if (descriptor == nullptr) {
-      LOG(WARNING) << "Attempt to write to an unknown device " << locator;
+      // LOG(WARNING) << "Attempt to write to an unknown device " << locator.device_locator();
       return false;
     }
     if (!actuators_.contains(locator)) {
@@ -227,6 +227,9 @@ void UniverseClient::handleInit() {
     roo::lock_guard<roo::mutex> lock(state_guard_);
     updated_devices_.clear();
   }
+  roo_transceivers_ClientMessage msg = roo_transceivers_ClientMessage_init_zero;
+  msg.which_contents = roo_transceivers_ClientMessage_request_state_tag;
+  channel_.sendClientMessage(msg);
 }
 
 void UniverseClient::handleUpdateEnd() {
@@ -351,7 +354,7 @@ void UniverseClient::handleReadings(
     // Overwrite the measurement with new value and time (but keep the
     // quantity).
     MLOG(roo_transceivers_remote_client)
-        << "Received reading of " << sensor_locator << ": " << m.value();
+        << "Received reading of " << sensor_locator << ": " << readings[i].value;
     m = Measurement(m.quantity(), now - roo_time::Millis(readings[i].age_ms),
                     readings[i].value);
   }
