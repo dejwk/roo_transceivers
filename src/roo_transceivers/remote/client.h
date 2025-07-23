@@ -3,12 +3,15 @@
 #include <functional>
 #include <vector>
 
+#include "roo_collections.h"
 #include "roo_collections/flat_small_hash_map.h"
 #include "roo_collections/flat_small_hash_set.h"
+#include "roo_threads.h"
+#include "roo_threads/mutex.h"
+#include "roo_transceivers.h"
 #include "roo_transceivers/id.h"
 #include "roo_transceivers/notification.h"
 #include "roo_transceivers/universe.h"
-#include "roo_threads/mutex.h"
 
 namespace roo_transceivers {
 
