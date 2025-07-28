@@ -97,8 +97,10 @@ class UniverseServer : public EventListener {
     }
 
     void removeDevice(const DeviceLocator& loc) {
-      newDeviceDelta(loc, State::DeviceDelta::REMOVED, -1);
-      int old_descriptor_key = devices_[loc].descriptor_key;
+      const auto& device = devices_[loc];
+      int old_descriptor_key = device.descriptor_key;
+      int old_ordinal = device.ordinal;
+      newDeviceDelta(loc, State::DeviceDelta::REMOVED, old_ordinal);
       const roo_transceivers_Descriptor& old_descriptor =
           descriptors_by_key_[old_descriptor_key];
       removeReadings(loc, old_descriptor);

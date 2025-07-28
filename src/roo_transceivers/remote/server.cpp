@@ -2,6 +2,11 @@
 
 #include "roo_collections/flat_small_hash_set.h"
 #include "roo_collections/hash.h"
+#include "roo_logging.h"
+
+#if !defined(MLOG_roo_transceivers_remote_server)
+#define MLOG_roo_transceivers_remote_server 0
+#endif
 
 namespace roo_transceivers {
 
@@ -91,6 +96,7 @@ void UniverseServer::handleClientMessage(
     const roo_transceivers_ClientMessage& msg) {
   switch (msg.which_contents) {
     case roo_transceivers_ClientMessage_request_update_tag: {
+      MLOG(roo_transceivers_remote_server) << "Received request update";
       universe_.requestUpdate();
       break;
     }
@@ -102,6 +108,8 @@ void UniverseServer::handleClientMessage(
       const auto& req = msg.contents.write;
       ActuatorLocator loc(req.device_locator_schema, req.device_locator_id,
                           req.device_locator_actuator_id);
+      MLOG(roo_transceivers_remote_server)
+          << "Received write request for " << loc << " with val " << req.value;
       universe_.write(loc, req.value);
       break;
     }
@@ -112,6 +120,7 @@ void UniverseServer::handleClientMessage(
 }
 
 void UniverseServer::handleRequestState() {
+  MLOG(roo_transceivers_remote_server) << "Received request state";
   {
     roo::lock_guard<roo::mutex> lock(state_guard_);
     if (transmission_in_progress_) {
@@ -259,18 +268,25 @@ void UniverseServer::State::removeDescriptorReference(
     return;
   }
   int key = itr->second.key;
-  descriptors_by_key_.erase(key);
   descriptors_.erase(descriptor);
   newDescriptorDelta(key, State::DescriptorDelta::REMOVED);
+  descriptors_by_key_.erase(key);
 }
 
 void UniverseServer::transmitInit() {
+  MLOG(roo_transceivers_remote_server) << "Transmitting Init";
   roo_transceivers_ServerMessage msg = roo_transceivers_ServerMessage_init_zero;
   msg.which_contents = roo_transceivers_ServerMessage_init_tag;
   channel_.sendServerMessage(msg);
 }
 
 void UniverseServer::transmitUpdateBegin(bool delta) {
+  if (delta) {
+    MLOG(roo_transceivers_remote_server) << "Transmitting Delta update begin";
+  } else {
+    MLOG(roo_transceivers_remote_server)
+        << "Transmitting Full state update begin";
+  }
   roo_transceivers_ServerMessage msg = roo_transceivers_ServerMessage_init_zero;
   msg.which_contents =
       roo_transceivers_ServerMessage_transceiver_update_begin_tag;
@@ -279,6 +295,7 @@ void UniverseServer::transmitUpdateBegin(bool delta) {
 }
 
 void UniverseServer::transmitUpdateEnd() {
+  MLOG(roo_transceivers_remote_server) << "Transmitting Update end";
   roo_transceivers_ServerMessage msg = roo_transceivers_ServerMessage_init_zero;
   msg.which_contents =
       roo_transceivers_ServerMessage_transceiver_update_end_tag;
@@ -286,6 +303,7 @@ void UniverseServer::transmitUpdateEnd() {
 }
 
 void UniverseServer::transmitDescriptorAdded(int key) {
+  MLOG(roo_transceivers_remote_server) << "Transmitting Descriptor added";
   const roo_transceivers_Descriptor& descriptor =
       state_.descriptors_by_key()[key];
   {
@@ -300,6 +318,7 @@ void UniverseServer::transmitDescriptorAdded(int key) {
 }
 
 void UniverseServer::transmitDescriptorRemoved(int key) {
+  MLOG(roo_transceivers_remote_server) << "Transmitting Descriptor removed";
   roo_transceivers_ServerMessage msg = roo_transceivers_ServerMessage_init_zero;
   msg.which_contents = roo_transceivers_ServerMessage_descriptor_removed_tag;
   msg.contents.descriptor_removed.key = key;
@@ -308,6 +327,7 @@ void UniverseServer::transmitDescriptorRemoved(int key) {
 
 void UniverseServer::transmitDeviceAdded(const DeviceLocator& locator,
                                          int descriptor_key) {
+  MLOG(roo_transceivers_remote_server) << "Transmitting Device added";
   roo_transceivers_ServerMessage msg = roo_transceivers_ServerMessage_init_zero;
   msg.which_contents = roo_transceivers_ServerMessage_device_added_tag;
   auto& payload = msg.contents.device_added;
@@ -319,6 +339,8 @@ void UniverseServer::transmitDeviceAdded(const DeviceLocator& locator,
 
 void UniverseServer::transmitDevicesPreserved(int first_preserved_ordinal,
                                               size_t count) {
+  MLOG(roo_transceivers_remote_server)
+      << "Transmitting Devices preserved (" << count << ")";
   roo_transceivers_ServerMessage msg = roo_transceivers_ServerMessage_init_zero;
   msg.which_contents = roo_transceivers_ServerMessage_device_preserved_tag;
   auto& payload = msg.contents.device_preserved;
@@ -332,6 +354,8 @@ void UniverseServer::transmitDevicesPreserved(int first_preserved_ordinal,
 
 void UniverseServer::transmitDeviceModified(int prev_ordinal,
                                             int descriptor_key) {
+  MLOG(roo_transceivers_remote_server)
+      << "Transmitting Device modified at " << prev_ordinal;
   roo_transceivers_ServerMessage msg = roo_transceivers_ServerMessage_init_zero;
   msg.which_contents = roo_transceivers_ServerMessage_device_modified_tag;
   auto& payload = msg.contents.device_modified;
@@ -341,6 +365,8 @@ void UniverseServer::transmitDeviceModified(int prev_ordinal,
 }
 
 void UniverseServer::transmitDeviceRemoved(int prev_ordinal) {
+  MLOG(roo_transceivers_remote_server)
+      << "Transmitting Device removed at " << prev_ordinal;
   roo_transceivers_ServerMessage msg = roo_transceivers_ServerMessage_init_zero;
   msg.which_contents = roo_transceivers_ServerMessage_device_removed_tag;
   auto& payload = msg.contents.device_removed;
@@ -349,12 +375,14 @@ void UniverseServer::transmitDeviceRemoved(int prev_ordinal) {
 }
 
 void UniverseServer::transmitReadingsBegin() {
+  // MLOG(roo_transceivers_remote_server) << "Transmitting readings begin";
   roo_transceivers_ServerMessage msg = roo_transceivers_ServerMessage_init_zero;
   msg.which_contents = roo_transceivers_ServerMessage_readings_begin_tag;
   channel_.sendServerMessage(msg);
 }
 
 void UniverseServer::transmitReadingsEnd() {
+  // MLOG(roo_transceivers_remote_server) << "Transmitting readings end";
   roo_transceivers_ServerMessage msg = roo_transceivers_ServerMessage_init_zero;
   msg.which_contents = roo_transceivers_ServerMessage_readings_end_tag;
   channel_.sendServerMessage(msg);
@@ -367,8 +395,17 @@ void UniverseServer::transmissionLoop() {
     CHECK(transmission_in_progress_);
     is_delta = !is_full_snapshot_;
     is_full_snapshot_ = false;
+    if (MLOG_IS_ON(roo_transceivers_remote_server)) {
+      MLOG(roo_transceivers_remote_server) << "Pre-transmit state: ";
+      for (const auto& device : state_.devices()) {
+        MLOG(roo_transceivers_remote_server)
+            << "    " << device.first << ": (" << device.second.descriptor_key
+            << ", " << device.second.ordinal << ")";
+      }
+    }
   }
   while (true) {
+    MLOG(roo_transceivers_remote_server) << "Begin transmission";
     transmit(is_delta);
     {
       roo::lock_guard<roo::mutex> lock(state_guard_);
@@ -393,6 +430,7 @@ void UniverseServer::transmissionLoop() {
       is_delta = !is_full_snapshot_;
     }
   }
+  MLOG(roo_transceivers_remote_server) << "End transmission";
 }
 
 void UniverseServer::transmit(bool is_delta) {
@@ -410,9 +448,9 @@ void UniverseServer::transmit(bool is_delta) {
     size_t i = 0;
     while (i < delta_count) {
       const auto& delta = state_.device_deltas()[i];
-      const auto& device = state_.devices()[delta.locator];
       switch (delta.status) {
         case State::DeviceDelta::ADDED: {
+          const auto& device = state_.devices()[delta.locator];
           transmitDeviceAdded(delta.locator, device.descriptor_key);
           ++i;
           break;
@@ -435,12 +473,13 @@ void UniverseServer::transmit(bool is_delta) {
           break;
         }
         case State::DeviceDelta::MODIFIED: {
+          const auto& device = state_.devices()[delta.locator];
           transmitDeviceModified(device.ordinal, device.descriptor_key);
           ++i;
           break;
         }
         case State::DeviceDelta::REMOVED: {
-          transmitDeviceRemoved(device.ordinal);
+          transmitDeviceRemoved(delta.old_ordinal);
           ++i;
           break;
         }

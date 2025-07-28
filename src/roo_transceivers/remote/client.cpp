@@ -9,7 +9,7 @@
 namespace roo_transceivers {
 
 UniverseClient::UniverseClient(UniverseClientChannel& channel)
-    : channel_(channel) {
+    : channel_(channel), synced_(false) {
   channel.registerServerMessageCallback(
       [this](const roo_transceivers_ServerMessage& msg) {
         handleServerMessage(msg);
@@ -20,6 +20,12 @@ UniverseClient::~UniverseClient() {
   channel_.registerServerMessageCallback(nullptr);
 }
 
+void UniverseClient::begin() {
+  roo_transceivers_ClientMessage msg = roo_transceivers_ClientMessage_init_zero;
+  msg.which_contents = roo_transceivers_ClientMessage_request_state_tag;
+  channel_.sendClientMessage(msg);
+}
+
 size_t UniverseClient::deviceCount() const {
   const roo::lock_guard<roo::mutex> lock(state_guard_);
   return devices_.size();
@@ -27,8 +33,11 @@ size_t UniverseClient::deviceCount() const {
 
 bool UniverseClient::forEachDevice(
     std::function<bool(const DeviceLocator&)> callback) const {
+  MLOG(roo_transceivers_remote_client) << "Enumerating devices ...";
   size_t i = 0;
   DeviceLocator loc;
+
+  bool result = true;
   while (true) {
     {
       // Can't hold mutex for the entire iteration, b/c of deadlocks, when the
@@ -38,10 +47,14 @@ bool UniverseClient::forEachDevice(
       if (i >= devices_.size()) break;
       loc = devices_[i].locator;
     }
-    if (!callback(loc)) return false;
+    if (!callback(loc)) {
+      result = false;
+      break;
+    }
     ++i;
   }
-  return true;
+  MLOG(roo_transceivers_remote_client) << "Enumerating devices done.";
+  return result;
 }
 
 const roo_transceivers_Descriptor* UniverseClient::lookupDeviceDescriptor(
@@ -93,7 +106,8 @@ bool UniverseClient::write(const ActuatorLocator& locator, float value) {
     const auto* descriptor =
         lookupDeviceDescriptor(locator.device_locator(), descriptor_key);
     if (descriptor == nullptr) {
-      // LOG(WARNING) << "Attempt to write to an unknown device " << locator.device_locator();
+      // LOG(WARNING) << "Attempt to write to an unknown device " <<
+      // locator.device_locator();
       return false;
     }
     if (!actuators_.contains(locator)) {
@@ -154,10 +168,7 @@ void UniverseClient::handleServerMessage(
       break;
     }
     case roo_transceivers_ServerMessage_transceiver_update_begin_tag: {
-      if (!msg.contents.transceiver_update_begin.delta) {
-        clearAll();
-      }
-      CHECK(updated_devices_.empty());
+      handleUpdateBegin(msg.contents.transceiver_update_begin.delta);
       break;
     }
     case roo_transceivers_ServerMessage_descriptor_added_tag: {
@@ -226,20 +237,43 @@ void UniverseClient::handleInit() {
     // Cancel the update, if any pending.
     roo::lock_guard<roo::mutex> lock(state_guard_);
     updated_devices_.clear();
+    synced_ = false;
   }
   roo_transceivers_ClientMessage msg = roo_transceivers_ClientMessage_init_zero;
   msg.which_contents = roo_transceivers_ClientMessage_request_state_tag;
   channel_.sendClientMessage(msg);
 }
 
+void UniverseClient::handleUpdateBegin(bool delta) {
+  roo::lock_guard<roo::mutex> lock(state_guard_);
+  if (!delta) {
+    clearAll();
+    synced_ = true;
+    MLOG(roo_transceivers_remote_client)
+        << "Received full update begin message";
+  } else {
+    MLOG(roo_transceivers_remote_client)
+        << "Received delta update begin message";
+  }
+  CHECK(updated_devices_.empty());
+}
+
 void UniverseClient::handleUpdateEnd() {
   {
     roo::lock_guard<roo::mutex> lock(state_guard_);
+    if (!synced_) return;
     devices_.swap(updated_devices_);
     updated_devices_.clear();
     device_idx_by_locator_.clear();
     for (size_t i = 0; i < devices_.size(); ++i) {
       device_idx_by_locator_[devices_[i].locator] = i;
+    }
+  }
+  if (MLOG_IS_ON(roo_transceivers_remote_client)) {
+    MLOG(roo_transceivers_remote_client) << "Post-receive state: ";
+    for (const auto& device : devices_) {
+      MLOG(roo_transceivers_remote_client)
+          << "    " << device.locator << ": " << device.descriptor_key;
     }
   }
   notifyDevicesChanged();
@@ -249,12 +283,14 @@ void UniverseClient::handleDescriptorAdded(
     int key, const roo_transceivers_Descriptor& descriptor) {
   MLOG(roo_transceivers_remote_client) << "Received added descriptor";
   const roo::lock_guard<roo::mutex> lock(state_guard_);
+  if (!synced_) return;
   descriptors_[key] = descriptor;
 }
 
 void UniverseClient::handleDescriptorRemoved(int key) {
   MLOG(roo_transceivers_remote_client) << "Received removed descriptor";
   const roo::lock_guard<roo::mutex> lock(state_guard_);
+  if (!synced_) return;
   // At this point we do not expect to have any devices pointing to this
   // descriptor.
   descriptors_.erase(key);
@@ -264,6 +300,7 @@ void UniverseClient::handleDeviceAdded(const DeviceLocator& locator,
                                        int descriptor_key) {
   MLOG(roo_transceivers_remote_client) << "Received added device " << locator;
   const roo::lock_guard<roo::mutex> lock(state_guard_);
+  if (!synced_) return;
   auto itr = descriptors_.find(descriptor_key);
   if (itr == descriptors_.end()) {
     LOG(ERROR) << "Unknown descriptor key " << descriptor_key;
@@ -285,10 +322,12 @@ void UniverseClient::handleDeviceAdded(const DeviceLocator& locator,
 }
 
 void UniverseClient::handleDeviceRemoved(int prev_index) {
-  // Erase all readings.
+  const roo::lock_guard<roo::mutex> lock(state_guard_);
+  if (!synced_) return;
   int descriptor_key;
   const DeviceLocator& locator = devices_[prev_index].locator;
   MLOG(roo_transceivers_remote_client) << "Received removed device " << locator;
+  // Erase all readings.
   const roo_transceivers_Descriptor* descriptor =
       lookupDeviceDescriptor(locator, descriptor_key);
   if (descriptor == nullptr) {
@@ -309,6 +348,7 @@ void UniverseClient::handleDeviceRemoved(int prev_index) {
 
 void UniverseClient::handleDevicePreserved(int prev_index_first, size_t count) {
   const roo::lock_guard<roo::mutex> lock(state_guard_);
+  if (!synced_) return;
   MLOG(roo_transceivers_remote_client)
       << "Received preserved devices (" << count << " at " << prev_index_first
       << ")";
@@ -321,12 +361,12 @@ void UniverseClient::handleDeviceModified(int prev_index, int descriptor_key) {
   MLOG(roo_transceivers_remote_client)
       << "Received modified device at " << prev_index;
   const roo::lock_guard<roo::mutex> lock(state_guard_);
+  if (!synced_) return;
   updated_devices_.push_back(
       DeviceEntry{devices_[prev_index].locator, descriptor_key});
 }
 
 void UniverseClient::clearAll() {
-  const roo::lock_guard<roo::mutex> lock(state_guard_);
   descriptors_.clear();
   devices_.clear();
   updated_devices_.clear();
@@ -340,6 +380,7 @@ void UniverseClient::handleReadings(
     const roo_transceivers_ServerMessage_Reading_SensorValue* readings,
     size_t readings_count) {
   const roo::lock_guard<roo::mutex> lock(state_guard_);
+  if (!synced_) return;
   int descriptor_key;
   const roo_transceivers_Descriptor* descriptor =
       lookupDeviceDescriptor(device, descriptor_key);
@@ -354,7 +395,8 @@ void UniverseClient::handleReadings(
     // Overwrite the measurement with new value and time (but keep the
     // quantity).
     MLOG(roo_transceivers_remote_client)
-        << "Received reading of " << sensor_locator << ": " << readings[i].value;
+        << "Received reading of " << sensor_locator << ": "
+        << readings[i].value;
     m = Measurement(m.quantity(), now - roo_time::Millis(readings[i].age_ms),
                     readings[i].value);
   }

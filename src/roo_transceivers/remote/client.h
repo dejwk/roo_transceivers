@@ -40,6 +40,8 @@ class UniverseClient : public Universe {
 
   ~UniverseClient();
 
+  void begin();
+
   size_t deviceCount() const override;
 
   bool forEachDevice(
@@ -93,6 +95,8 @@ class UniverseClient : public Universe {
 
   void clearAll();
 
+  void handleUpdateBegin(bool delta);
+
   void handleUpdateEnd();
 
   void handleReadingsBegin();
@@ -122,6 +126,8 @@ class UniverseClient : public Universe {
   std::vector<DeviceEntry> devices_;
 
   std::vector<DeviceEntry> updated_devices_;
+
+  bool synced_;
 
   // Cached sensor measurements.
   roo_collections::FlatSmallHashMap<SensorLocator, Measurement> readings_;
