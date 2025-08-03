@@ -3,8 +3,8 @@
 #include "roo_io/text/string_printf.h"
 #include "roo_onewire.h"
 #include "roo_quantity/temperature.h"
-#include "roo_transceivers/id.h"
-#include "roo_transceivers/universe.h"
+#include "roo_transceivers.h"
+#include "roo_transceivers/helpers/simple_sensor_universe.h"
 
 namespace roo_transceivers {
 
@@ -21,7 +21,9 @@ class OneWireUniverse : public SimpleSensorUniverse {
     onewire_.thermometers().addEventListener(&listener_);
   }
 
-  size_t deviceCount() const override { return onewire_.thermometers().count(); }
+  size_t deviceCount() const override {
+    return onewire_.thermometers().count();
+  }
 
   bool forEachDevice(std::function<bool(const DeviceLocator&)> callback) const {
     char code[17];

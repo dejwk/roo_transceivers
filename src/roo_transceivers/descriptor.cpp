@@ -1,6 +1,4 @@
-#include "roo_transceivers/universe.h"
-
-namespace roo_transceivers {}  // namespace roo_transceivers
+#include "roo_transceivers/descriptor.h"
 
 bool operator==(const roo_transceivers_Descriptor& a,
                 const roo_transceivers_Descriptor& b) {

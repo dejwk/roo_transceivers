@@ -1,3 +1,7 @@
 #pragma once
 
-// Include specific headers from the roo_transceivers directory.
+#include "roo_transceivers/descriptor.h"
+#include "roo_transceivers/id.h"
+#include "roo_transceivers/measurement.h"
+#include "roo_transceivers/notification.h"
+#include "roo_transceivers/universe.h"

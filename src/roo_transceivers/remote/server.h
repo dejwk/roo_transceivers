@@ -4,8 +4,7 @@
 #include <vector>
 
 #include "roo_threads/mutex.h"
-#include "roo_transceivers/notification.h"
-#include "roo_transceivers/universe.h"
+#include "roo_transceivers.h"
 
 namespace roo_transceivers {
 
