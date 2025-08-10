@@ -41,6 +41,16 @@ class TransceiverCollection : public Universe, public EventListener {
     device->addEventListener(this);
   }
 
+  bool remove(const DeviceLocator& locator) {
+    auto itr = transceivers_.find(locator);
+    if (itr == transceivers_.end()) {
+      return false;
+    }
+    itr->second->removeEventListener(this);
+    transceivers_.erase(locator);
+    return true;
+  }
+
   size_t deviceCount() const override { return transceivers_.size(); }
 
   bool forEachDevice(

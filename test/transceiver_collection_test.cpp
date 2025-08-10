@@ -187,4 +187,60 @@ TEST(TransceiverCollectionTest, ConstructorWithVector) {
   EXPECT_TRUE(collection.getDeviceDescriptor(l2, desc));
 }
 
+TEST(TransceiverCollectionTest, RemoveTransceiver) {
+  TransceiverCollection collection;
+  DummyTransceiver t1(1);
+  DummyTransceiver t2(2);
+  DeviceLocator l1("schema", "dev1");
+  DeviceLocator l2("schema", "dev2");
+
+  // Add two devices.
+  collection.add(l1, &t1);
+  collection.add(l2, &t2);
+  EXPECT_EQ(collection.deviceCount(), 2);
+
+  // Remove first device.
+  EXPECT_TRUE(collection.remove(l1));
+  EXPECT_EQ(collection.deviceCount(), 1);
+
+  // Ensure l1 is no longer present.
+  roo_transceivers_Descriptor desc;
+  EXPECT_FALSE(collection.getDeviceDescriptor(l1, desc));
+
+  // Remove second device.
+  EXPECT_TRUE(collection.remove(l2));
+  EXPECT_EQ(collection.deviceCount(), 0);
+
+  // Removing again should return false.
+  EXPECT_FALSE(collection.remove(l1));
+  EXPECT_FALSE(collection.remove(l2));
+}
+
+TEST(TransceiverCollectionTest, RemoveDoesNotAffectOtherDevices) {
+  TransceiverCollection collection;
+  DummyTransceiver t1(1);
+  DummyTransceiver t2(2);
+  DeviceLocator l1("schema", "dev1");
+  DeviceLocator l2("schema", "dev2");
+
+  collection.add(l1, &t1);
+  collection.add(l2, &t2);
+
+  // Remove l1, l2 should still be accessible.
+  EXPECT_TRUE(collection.remove(l1));
+  roo_transceivers_Descriptor desc;
+  EXPECT_TRUE(collection.getDeviceDescriptor(l2, desc));
+}
+
+TEST(TransceiverCollectionTest, RemoveNonexistentDeviceReturnsFalse) {
+  TransceiverCollection collection;
+  DummyTransceiver t1(1);
+  DeviceLocator l1("schema", "dev1");
+  DeviceLocator l2("schema", "dev2");
+
+  collection.add(l1, &t1);
+
+  // Try to remove a locator that was never added.
+  EXPECT_FALSE(collection.remove(l2));
+}
 }  // namespace roo_transceivers
