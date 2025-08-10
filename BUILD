@@ -23,9 +23,9 @@ cc_library(
 )
 
 cc_test(
-    name = "roo_transceivers_test",
+    name = "id_test",
     srcs = [
-        "test/roo_transceivers_test.cpp",
+        "test/id_test.cpp",
     ],
     copts = ["-Iexternal/gtest/include"],
     linkstatic = 1,
@@ -36,9 +36,9 @@ cc_test(
 )
 
 cc_test(
-    name = "roo_transceivers_collection_universe_test",
+    name = "transceiver_collection_test",
     srcs = [
-        "test/roo_transceivers_collection_universe_test.cpp",
+        "test/transceiver_collection_test.cpp",
     ],
     copts = ["-Iexternal/gtest/include"],
     linkstatic = 1,
@@ -49,22 +49,9 @@ cc_test(
 )
 
 cc_test(
-    name = "roo_transceivers_locator_test",
+    name = "remote_test",
     srcs = [
-        "test/roo_transceivers_locator_test.cpp",
-    ],
-    copts = ["-Iexternal/gtest/include"],
-    linkstatic = 1,
-    deps = [
-        ":roo_transceivers",
-        "@googletest//:gtest_main",
-    ],
-)
-
-cc_test(
-    name = "roo_transceivers_remote_test",
-    srcs = [
-        "test/roo_transceivers_remote_test.cpp",
+        "test/remote_test.cpp",
     ],
     copts = ["-Iexternal/gtest/include"],
     linkstatic = 1,
