@@ -3,6 +3,7 @@
 #include "roo_collections/flat_small_hash_set.h"
 #include "roo_collections/hash.h"
 #include "roo_logging.h"
+#include "roo_transceivers/remote/proto.h"
 
 #if !defined(MLOG_roo_transceivers_remote_server)
 #define MLOG_roo_transceivers_remote_server 0
@@ -275,117 +276,73 @@ void UniverseServer::State::removeDescriptorReference(
 
 void UniverseServer::transmitInit() {
   MLOG(roo_transceivers_remote_server) << "Transmitting Init";
-  roo_transceivers_ServerMessage msg = roo_transceivers_ServerMessage_init_zero;
-  msg.which_contents = roo_transceivers_ServerMessage_init_tag;
-  channel_.sendServerMessage(msg);
+  channel_.sendServerMessage(proto::SrvInit());
 }
 
 void UniverseServer::transmitUpdateBegin(bool delta) {
   if (delta) {
     MLOG(roo_transceivers_remote_server) << "Transmitting Delta update begin";
+    channel_.sendServerMessage(proto::SrvDeltaUpdateBegin());
   } else {
     MLOG(roo_transceivers_remote_server)
         << "Transmitting Full state update begin";
+    channel_.sendServerMessage(proto::SrvFullUpdateBegin());
   }
-  roo_transceivers_ServerMessage msg = roo_transceivers_ServerMessage_init_zero;
-  msg.which_contents =
-      roo_transceivers_ServerMessage_transceiver_update_begin_tag;
-  msg.contents.transceiver_update_begin.delta = delta;
-  channel_.sendServerMessage(msg);
 }
 
 void UniverseServer::transmitUpdateEnd() {
   MLOG(roo_transceivers_remote_server) << "Transmitting Update end";
-  roo_transceivers_ServerMessage msg = roo_transceivers_ServerMessage_init_zero;
-  msg.which_contents =
-      roo_transceivers_ServerMessage_transceiver_update_end_tag;
-  channel_.sendServerMessage(msg);
+  channel_.sendServerMessage(proto::SrvUpdateEnd());
 }
 
 void UniverseServer::transmitDescriptorAdded(int key) {
   MLOG(roo_transceivers_remote_server) << "Transmitting Descriptor added";
   const roo_transceivers_Descriptor& descriptor =
       state_.descriptors_by_key()[key];
-  {
-    roo_transceivers_ServerMessage msg =
-        roo_transceivers_ServerMessage_init_zero;
-    msg.which_contents = roo_transceivers_ServerMessage_descriptor_added_tag;
-    msg.contents.descriptor_added.key = key;
-    msg.contents.descriptor_added.has_descriptor = true;
-    msg.contents.descriptor_added.descriptor = descriptor;
-    channel_.sendServerMessage(msg);
-  }
+  channel_.sendServerMessage(proto::SrvDescriptorAdded(key, descriptor));
 }
 
 void UniverseServer::transmitDescriptorRemoved(int key) {
   MLOG(roo_transceivers_remote_server) << "Transmitting Descriptor removed";
-  roo_transceivers_ServerMessage msg = roo_transceivers_ServerMessage_init_zero;
-  msg.which_contents = roo_transceivers_ServerMessage_descriptor_removed_tag;
-  msg.contents.descriptor_removed.key = key;
-  channel_.sendServerMessage(msg);
+  channel_.sendServerMessage(proto::SrvDescriptorRemoved(key));
 }
 
 void UniverseServer::transmitDeviceAdded(const DeviceLocator& locator,
                                          int descriptor_key) {
   MLOG(roo_transceivers_remote_server) << "Transmitting Device added";
-  roo_transceivers_ServerMessage msg = roo_transceivers_ServerMessage_init_zero;
-  msg.which_contents = roo_transceivers_ServerMessage_device_added_tag;
-  auto& payload = msg.contents.device_added;
-  strncpy(payload.locator_schema, locator.schema().c_str(), 16);
-  strncpy(payload.locator_id, locator.device_id().c_str(), 24);
-  msg.contents.device_added.descriptor_key = descriptor_key;
-  channel_.sendServerMessage(msg);
+  channel_.sendServerMessage(proto::SrvDeviceAdded(locator, descriptor_key));
 }
 
 void UniverseServer::transmitDevicesPreserved(int first_preserved_ordinal,
                                               size_t count) {
   MLOG(roo_transceivers_remote_server)
       << "Transmitting Devices preserved (" << count << ")";
-  roo_transceivers_ServerMessage msg = roo_transceivers_ServerMessage_init_zero;
-  msg.which_contents = roo_transceivers_ServerMessage_device_preserved_tag;
-  auto& payload = msg.contents.device_preserved;
-  payload.prev_index = first_preserved_ordinal;
-  payload.has_count = (count > 1);
-  if (payload.has_count) {
-    payload.count = count;
-  }
-  channel_.sendServerMessage(msg);
+  channel_.sendServerMessage(
+      proto::SrvDevicesPreserved(first_preserved_ordinal, count));
 }
 
 void UniverseServer::transmitDeviceModified(int prev_ordinal,
                                             int descriptor_key) {
   MLOG(roo_transceivers_remote_server)
       << "Transmitting Device modified at " << prev_ordinal;
-  roo_transceivers_ServerMessage msg = roo_transceivers_ServerMessage_init_zero;
-  msg.which_contents = roo_transceivers_ServerMessage_device_modified_tag;
-  auto& payload = msg.contents.device_modified;
-  payload.prev_index = prev_ordinal;
-  payload.descriptor_key = descriptor_key;
-  channel_.sendServerMessage(msg);
+  channel_.sendServerMessage(
+      proto::SrvDevicesModified(prev_ordinal, descriptor_key));
 }
 
 void UniverseServer::transmitDeviceRemoved(int prev_ordinal) {
   MLOG(roo_transceivers_remote_server)
       << "Transmitting Device removed at " << prev_ordinal;
-  roo_transceivers_ServerMessage msg = roo_transceivers_ServerMessage_init_zero;
-  msg.which_contents = roo_transceivers_ServerMessage_device_removed_tag;
-  auto& payload = msg.contents.device_removed;
-  payload.prev_index = prev_ordinal;
-  channel_.sendServerMessage(msg);
+  channel_.sendServerMessage(proto::SrvDevicesRemoved(prev_ordinal));
 }
 
 void UniverseServer::transmitReadingsBegin() {
-  // MLOG(roo_transceivers_remote_server) << "Transmitting readings begin";
-  roo_transceivers_ServerMessage msg = roo_transceivers_ServerMessage_init_zero;
-  msg.which_contents = roo_transceivers_ServerMessage_readings_begin_tag;
-  channel_.sendServerMessage(msg);
+  MLOG(roo_transceivers_remote_server) << "Transmitting readings begin";
+  channel_.sendServerMessage(proto::SrvReadingsBegin());
 }
 
 void UniverseServer::transmitReadingsEnd() {
-  // MLOG(roo_transceivers_remote_server) << "Transmitting readings end";
-  roo_transceivers_ServerMessage msg = roo_transceivers_ServerMessage_init_zero;
-  msg.which_contents = roo_transceivers_ServerMessage_readings_end_tag;
-  channel_.sendServerMessage(msg);
+  MLOG(roo_transceivers_remote_server) << "Transmitting readings end";
+  channel_.sendServerMessage(proto::SrvReadingsEnd());
 }
 
 void UniverseServer::transmissionLoop() {
@@ -502,19 +459,11 @@ void UniverseServer::transmit(bool is_delta) {
     size_t reading_offset = 0;
     roo_time::Uptime now = roo_time::Uptime::Now();
     for (const auto& group : state_.reading_delta_groups()) {
-      roo_transceivers_ServerMessage msg =
-          roo_transceivers_ServerMessage_init_zero;
-      msg.which_contents = roo_transceivers_ServerMessage_reading_tag;
-      auto& payload = msg.contents.reading;
-      strncpy(payload.device_locator_schema, group.device.schema().c_str(), 16);
-      strncpy(payload.device_locator_id, group.device.device_id().c_str(), 24);
-      payload.sensor_values_count = group.reading_count;
+      roo_transceivers_ServerMessage msg = proto::SrvReading(group.device);
       for (size_t i = 0; i < group.reading_count; ++i) {
         auto& reading = state_.reading_deltas()[reading_offset];
-        auto& dest = payload.sensor_values[i];
-        strncpy(dest.device_locator_sensor_id, reading.sensor_id.c_str(), 24);
-        dest.value = reading.value;
-        dest.age_ms = (now - reading.time).inMillis();
+        proto::AddReading(msg, reading.sensor_id, reading.value,
+                          (now - reading.time).inMillis());
         ++reading_offset;
       }
       channel_.sendServerMessage(msg);
