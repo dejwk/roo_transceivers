@@ -49,9 +49,9 @@ cc_test(
 )
 
 cc_test(
-    name = "remote_test",
+    name = "remote_server_test",
     srcs = [
-        "test/remote_test.cpp",
+        "test/remote_server_test.cpp",
     ],
     copts = ["-Iexternal/gtest/include"],
     linkstatic = 1,
