@@ -70,7 +70,6 @@ void UniverseServer::devicesChanged() {
     state_.clearDelta();
     snapshotDevices();
     snapshotSensorState();
-    is_full_snapshot_ = false;
     transmission_in_progress_ = true;
   }
   triggerTransmission();
@@ -87,7 +86,6 @@ void UniverseServer::newReadingsAvailable() {
     snapshotDevices();
     snapshotSensorState();
 
-    is_full_snapshot_ = false;
     transmission_in_progress_ = true;
   }
   triggerTransmission();
