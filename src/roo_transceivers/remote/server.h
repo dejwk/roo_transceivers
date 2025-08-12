@@ -251,7 +251,7 @@ class UniverseServer : public EventListener {
   void triggerTransmission(bool send_full_snapshot);
 
   void snapshotDevices();
-  void snapshotSensorState();
+  void snapshotSensorState(bool new_only);
 
   // Send the handhake message.
   void transmitInit();
@@ -300,6 +300,10 @@ class UniverseServer : public EventListener {
   // Set when newReadingsAvaialble() gets called while the transmit loop is in
   // progress. Guarded by state_guard_.
   bool readings_pending_;
+
+  // Set by snapshotDevices(); true if the snapshot noticed any changes from the
+  // previous state. Guarded by state_guard_.
+  bool devices_changed_;
 
   mutable roo::mutex state_guard_;
 };

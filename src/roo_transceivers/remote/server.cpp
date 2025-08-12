@@ -46,7 +46,8 @@ UniverseServer::UniverseServer(Universe& universe,
       transmission_in_progress_(false),
       state_snapshot_pending_(false),
       device_update_pending_(false),
-      readings_pending_(false) {
+      readings_pending_(false),
+      devices_changed_(false) {
   channel.registerClientMessageCallback(
       [this](const roo_transceivers_ClientMessage& msg) {
         handleClientMessage(msg);
@@ -71,7 +72,7 @@ void UniverseServer::devicesChanged() {
     }
     state_.clearDelta();
     snapshotDevices();
-    snapshotSensorState();
+    snapshotSensorState(true);
     transmission_in_progress_ = true;
     send_full_state = !full_snapshot_transmitted_;
   }
@@ -88,7 +89,7 @@ void UniverseServer::newReadingsAvailable() {
     }
     state_.clearDelta();
     snapshotDevices();
-    snapshotSensorState();
+    snapshotSensorState(false);
     transmission_in_progress_ = true;
     send_full_state = !full_snapshot_transmitted_;
   }
@@ -132,7 +133,7 @@ void UniverseServer::handleRequestState() {
     }
     state_.clearAll();
     snapshotDevices();
-    snapshotSensorState();
+    snapshotSensorState(false);
     transmission_in_progress_ = true;
   }
   triggerTransmission(true);
@@ -172,6 +173,7 @@ void UniverseServer::State::newSensorReadingDelta(const SensorLocator& loc,
 }
 
 void UniverseServer::snapshotDevices() {
+  devices_changed_ = false;
   roo_transceivers_Descriptor descriptor;
   roo_collections::FlatSmallHashSet<DeviceLocator> removed(
       state_.device_count());
@@ -188,6 +190,7 @@ void UniverseServer::snapshotDevices() {
     if (existing == state_.devices().end()) {
       // New device.
       state_.addDevice(loc, descriptor, ordinal);
+      devices_changed_ = true;
     } else {
       // Device exists.
       removed.erase(loc);
@@ -202,6 +205,7 @@ void UniverseServer::snapshotDevices() {
       } else {
         // Changed, indeed. Need to deref the old descriptor, and reference
         // the new one.
+        devices_changed_ = true;
         state_.newDeviceDelta(loc, State::DeviceDelta::MODIFIED, -1);
         state_.removeReadings(loc, old_descriptor);
         state_.removeDescriptorReference(old_descriptor);
@@ -214,17 +218,19 @@ void UniverseServer::snapshotDevices() {
   });
   // Emit 'remove' entries for devices that we didn't see in the new snapshot.
   for (const auto& loc : removed) {
+    devices_changed_ = true;
     state_.removeDevice(loc);
   }
   device_update_pending_ = false;
 }
 
-void UniverseServer::snapshotSensorState() {
+void UniverseServer::snapshotSensorState(bool new_only) {
   // We take devices from delta, because they are guaranteed to be the same as
   // the last enumeration from the universe, and ordered the same way. We just
   // need to skip the 'removed' ones.
   for (const auto& dev : state_.device_deltas()) {
     if (dev.status == State::DeviceDelta::REMOVED) continue;
+    if (new_only && dev.status != State::DeviceDelta::ADDED) continue;
     const roo_transceivers_Descriptor& descriptor =
         state_.getDescriptor(dev.locator);
     for (size_t i = 0; i < descriptor.sensors_count; i++) {
@@ -375,16 +381,16 @@ void UniverseServer::transmissionLoop(bool send_full_snapshot) {
       if (state_snapshot_pending_) {
         state_.clearAll();
         snapshotDevices();
-        snapshotSensorState();
+        snapshotSensorState(false);
         send_full_snapshot = true;
         state_snapshot_pending_ = false;
       } else if (device_update_pending_) {
         state_.clearDelta();
         snapshotDevices();
-        snapshotSensorState();
+        snapshotSensorState(true);
       } else if (readings_pending_) {
         state_.clearDelta();
-        snapshotSensorState();
+        snapshotSensorState(false);
       } else {
         transmission_in_progress_ = false;
         return;
@@ -398,8 +404,7 @@ void UniverseServer::transmissionLoop(bool send_full_snapshot) {
 void UniverseServer::transmit(bool is_delta) {
   // Assumes that the flags have been checked under state_guard_ to authorize
   // the transmission.
-  size_t delta_count = state_.device_deltas().size();
-  if (delta_count > 0) {
+  if (devices_changed_) {
     transmitUpdateBegin(is_delta);
     // Transmit new descriptors.
     for (const auto& itr : state_.descriptor_deltas()) {
@@ -408,6 +413,7 @@ void UniverseServer::transmit(bool is_delta) {
     }
     // Transmit all devices.
     size_t i = 0;
+    size_t delta_count = state_.device_deltas().size();
     while (i < delta_count) {
       const auto& delta = state_.device_deltas()[i];
       switch (delta.status) {

@@ -283,4 +283,26 @@ TEST(ServerTest, SendInitAndRespondToClientGetFullShapshot) {
   client(proto::ClientRequestState());
 }
 
+TEST(ServerTest, SendInitAndRespondToClientGetFullShapshotFollowedByEmptyDelta) {
+  FakeThermometer t1;
+  DeviceLocator loc("temp", "t1");
+  TransceiverCollection universe({{loc, &t1}});
+  DirectExecutor executor;
+  MockChannel channel;
+  roo_transceivers_Descriptor descriptor;
+  t1.getDescriptor(descriptor);
+  UniverseServerChannel::ClientMessageCb client;
+  {
+    InSequence s;
+    EXPECT_CALL(channel, registerClientMessageCallback(_)).WillOnce(SaveArg<0>(&client));
+    // The same as above, and no more (e.g. no delta at all).
+    EXPECT_CALL(channel, sendServerMessage(_)).Times(8);
+    EXPECT_CALL(channel, registerClientMessageCallback(_));
+  }
+  UniverseServer server(universe, channel, executor);
+  server.begin();
+  client(proto::ClientRequestState());
+  server.devicesChanged();  // But without any devices actually changed.
+}
+
 }  // namespace roo_transceivers
