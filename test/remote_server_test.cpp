@@ -79,8 +79,8 @@ void PrintTo(const roo_transceivers_ServerMessage& msg, std::ostream* os) {
         if (i > 0) {
           (*os) << ", ";
         }
-        (*os) << "(\"" << reading.device_locator_sensor_id << "\" : "
-              << reading.value << ")";
+        (*os) << "(\"" << reading.device_locator_sensor_id
+              << "\" : " << reading.value << ")";
       }
       (*os) << " }\n";
       break;
@@ -263,7 +263,8 @@ TEST(ServerTest, SendInitAndRespondToClientGetFullShapshot) {
   UniverseServerChannel::ClientMessageCb client;
   {
     InSequence s;
-    EXPECT_CALL(channel, registerClientMessageCallback(_)).WillOnce(SaveArg<0>(&client));
+    EXPECT_CALL(channel, registerClientMessageCallback(_))
+        .WillOnce(SaveArg<0>(&client));
     EXPECT_CALL(channel, sendServerMessage(MsgEq(proto::SrvInit())));
     EXPECT_CALL(channel, sendServerMessage(MsgEq(proto::SrvFullUpdateBegin())));
     EXPECT_CALL(channel, sendServerMessage(
@@ -283,7 +284,8 @@ TEST(ServerTest, SendInitAndRespondToClientGetFullShapshot) {
   client(proto::ClientRequestState());
 }
 
-TEST(ServerTest, SendInitAndRespondToClientGetFullShapshotFollowedByEmptyDelta) {
+TEST(ServerTest,
+     SendInitAndRespondToClientGetFullShapshotFollowedByEmptyDelta) {
   FakeThermometer t1;
   DeviceLocator loc("temp", "t1");
   TransceiverCollection universe({{loc, &t1}});
@@ -294,7 +296,8 @@ TEST(ServerTest, SendInitAndRespondToClientGetFullShapshotFollowedByEmptyDelta) 
   UniverseServerChannel::ClientMessageCb client;
   {
     InSequence s;
-    EXPECT_CALL(channel, registerClientMessageCallback(_)).WillOnce(SaveArg<0>(&client));
+    EXPECT_CALL(channel, registerClientMessageCallback(_))
+        .WillOnce(SaveArg<0>(&client));
     // The same as above, and no more (e.g. no delta at all).
     EXPECT_CALL(channel, sendServerMessage(_)).Times(8);
     EXPECT_CALL(channel, registerClientMessageCallback(_));
@@ -303,6 +306,75 @@ TEST(ServerTest, SendInitAndRespondToClientGetFullShapshotFollowedByEmptyDelta) 
   server.begin();
   client(proto::ClientRequestState());
   server.devicesChanged();  // But without any devices actually changed.
+}
+
+TEST(ServerTest, SingleDeviceDisappearing) {
+  FakeThermometer t1;
+  DeviceLocator loc("temp", "t1");
+  TransceiverCollection universe({{loc, &t1}});
+  DirectExecutor executor;
+  MockChannel channel;
+  roo_transceivers_Descriptor descriptor;
+  t1.getDescriptor(descriptor);
+  UniverseServerChannel::ClientMessageCb client;
+  {
+    InSequence s;
+    EXPECT_CALL(channel, registerClientMessageCallback(_))
+        .WillOnce(SaveArg<0>(&client));
+    // The initial comms (full snapshot).
+    EXPECT_CALL(channel, sendServerMessage(_)).Times(8);
+    // In response to devices changed, the disappearning device is noticed.
+    EXPECT_CALL(channel,
+                sendServerMessage(MsgEq(proto::SrvDeltaUpdateBegin())));
+    EXPECT_CALL(channel, sendServerMessage(MsgEq(proto::SrvDeviceRemoved(0))));
+    EXPECT_CALL(channel,
+                sendServerMessage(MsgEq(proto::SrvDescriptorRemoved(0))));
+    EXPECT_CALL(channel, sendServerMessage(MsgEq(proto::SrvUpdateEnd())));
+    EXPECT_CALL(channel, registerClientMessageCallback(_));
+  }
+  UniverseServer server(universe, channel, executor);
+  server.begin();
+  client(proto::ClientRequestState());
+  ASSERT_TRUE(universe.remove(loc));
+  server.devicesChanged();
+}
+
+TEST(ServerTest, SingleDeviceDisappearingAndReappearing) {
+  FakeThermometer t1;
+  DeviceLocator loc("temp", "t1");
+  TransceiverCollection universe({{loc, &t1}});
+  DirectExecutor executor;
+  MockChannel channel;
+  roo_transceivers_Descriptor descriptor;
+  t1.getDescriptor(descriptor);
+  UniverseServerChannel::ClientMessageCb client;
+  {
+    InSequence s;
+    EXPECT_CALL(channel, registerClientMessageCallback(_))
+        .WillOnce(SaveArg<0>(&client));
+    // The initial comms (full snapshot), plus device disappearing.
+    EXPECT_CALL(channel, sendServerMessage(_)).Times(12);
+    // Now, the reappearing device is noticed.
+    EXPECT_CALL(channel, sendServerMessage(MsgEq(proto::SrvDeltaUpdateBegin())));
+    EXPECT_CALL(channel, sendServerMessage(
+                             MsgEq(proto::SrvDescriptorAdded(0, descriptor))));
+    EXPECT_CALL(channel,
+                sendServerMessage(MsgEq(proto::SrvDeviceAdded(loc, 0))));
+    EXPECT_CALL(channel, sendServerMessage(MsgEq(proto::SrvUpdateEnd())));
+    EXPECT_CALL(channel, sendServerMessage(MsgEq(proto::SrvReadingsBegin())));
+    auto reading = proto::SrvReading(loc);
+    proto::AddReading(reading, SensorId(""), nanf(""), 0);
+    EXPECT_CALL(channel, sendServerMessage(MsgEq(reading)));
+    EXPECT_CALL(channel, sendServerMessage(MsgEq(proto::SrvReadingsEnd())));
+    EXPECT_CALL(channel, registerClientMessageCallback(_));
+  }
+  UniverseServer server(universe, channel, executor);
+  server.begin();
+  client(proto::ClientRequestState());
+  ASSERT_TRUE(universe.remove(loc));
+  server.devicesChanged();
+  universe.add(loc, &t1);
+  server.devicesChanged();
 }
 
 }  // namespace roo_transceivers

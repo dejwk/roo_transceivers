@@ -28,7 +28,7 @@ roo_transceivers_ServerMessage SrvDevicesPreserved(int first_preserved_ordinal,
 roo_transceivers_ServerMessage SrvDevicesModified(int prev_ordinal,
                                                   int descriptor_key);
 
-roo_transceivers_ServerMessage SrvDevicesRemoved(int prev_ordinal);
+roo_transceivers_ServerMessage SrvDeviceRemoved(int prev_ordinal);
 
 roo_transceivers_ServerMessage SrvReadingsBegin();
 

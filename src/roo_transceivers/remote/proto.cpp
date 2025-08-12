@@ -86,7 +86,7 @@ roo_transceivers_ServerMessage SrvDevicesModified(int prev_ordinal,
   return msg;
 }
 
-roo_transceivers_ServerMessage SrvDevicesRemoved(int prev_ordinal) {
+roo_transceivers_ServerMessage SrvDeviceRemoved(int prev_ordinal) {
   roo_transceivers_ServerMessage msg = roo_transceivers_ServerMessage_init_zero;
   msg.which_contents = roo_transceivers_ServerMessage_device_removed_tag;
   auto& payload = msg.contents.device_removed;

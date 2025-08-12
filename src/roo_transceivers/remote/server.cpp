@@ -340,7 +340,7 @@ void UniverseServer::transmitDeviceModified(int prev_ordinal,
 void UniverseServer::transmitDeviceRemoved(int prev_ordinal) {
   MLOG(roo_transceivers_remote_server)
       << "Transmitting Device removed at " << prev_ordinal;
-  channel_.sendServerMessage(proto::SrvDevicesRemoved(prev_ordinal));
+  channel_.sendServerMessage(proto::SrvDeviceRemoved(prev_ordinal));
 }
 
 void UniverseServer::transmitReadingsBegin() {
