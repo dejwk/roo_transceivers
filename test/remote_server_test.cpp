@@ -92,6 +92,10 @@ void PrintTo(const roo_transceivers_ServerMessage& msg, std::ostream* os) {
   }
   (*os) << "}\n";
 }
+
+#define EXPECT_SRV_MSG(channel, msg) \
+  EXPECT_CALL(channel, sendServerMessage(MsgEq((msg))))
+
 namespace roo_transceivers {
 
 using testing::_;
@@ -215,7 +219,7 @@ TEST(ServerTest, SendInit) {
   {
     InSequence s;
     EXPECT_CALL(channel, registerClientMessageCallback(_));
-    EXPECT_CALL(channel, sendServerMessage(MsgEq(proto::SrvInit())));
+    EXPECT_SRV_MSG(channel, proto::SrvInit());
     EXPECT_CALL(channel, registerClientMessageCallback(_));
   }
   UniverseServer server(universe, channel, executor);
@@ -233,18 +237,16 @@ TEST(ServerTest, SendInitAndDevicesUpdated) {
   {
     InSequence s;
     EXPECT_CALL(channel, registerClientMessageCallback(_));
-    EXPECT_CALL(channel, sendServerMessage(MsgEq(proto::SrvInit())));
-    EXPECT_CALL(channel, sendServerMessage(MsgEq(proto::SrvFullUpdateBegin())));
-    EXPECT_CALL(channel, sendServerMessage(
-                             MsgEq(proto::SrvDescriptorAdded(0, descriptor))));
-    EXPECT_CALL(channel,
-                sendServerMessage(MsgEq(proto::SrvDeviceAdded(loc, 0))));
-    EXPECT_CALL(channel, sendServerMessage(MsgEq(proto::SrvUpdateEnd())));
-    EXPECT_CALL(channel, sendServerMessage(MsgEq(proto::SrvReadingsBegin())));
+    EXPECT_SRV_MSG(channel, proto::SrvInit());
+    EXPECT_SRV_MSG(channel, proto::SrvFullUpdateBegin());
+    EXPECT_SRV_MSG(channel, proto::SrvDescriptorAdded(0, descriptor));
+    EXPECT_SRV_MSG(channel, proto::SrvDeviceAdded(loc, 0));
+    EXPECT_SRV_MSG(channel, proto::SrvUpdateEnd());
+    EXPECT_SRV_MSG(channel, proto::SrvReadingsBegin());
     auto reading = proto::SrvReading(loc);
     proto::AddReading(reading, SensorId(""), nanf(""), 0);
-    EXPECT_CALL(channel, sendServerMessage(MsgEq(reading)));
-    EXPECT_CALL(channel, sendServerMessage(MsgEq(proto::SrvReadingsEnd())));
+    EXPECT_SRV_MSG(channel, reading);
+    EXPECT_SRV_MSG(channel, proto::SrvReadingsEnd());
     EXPECT_CALL(channel, registerClientMessageCallback(_));
   }
   UniverseServer server(universe, channel, executor);
@@ -265,18 +267,16 @@ TEST(ServerTest, SendInitAndRespondToClientGetFullShapshot) {
     InSequence s;
     EXPECT_CALL(channel, registerClientMessageCallback(_))
         .WillOnce(SaveArg<0>(&client));
-    EXPECT_CALL(channel, sendServerMessage(MsgEq(proto::SrvInit())));
-    EXPECT_CALL(channel, sendServerMessage(MsgEq(proto::SrvFullUpdateBegin())));
-    EXPECT_CALL(channel, sendServerMessage(
-                             MsgEq(proto::SrvDescriptorAdded(0, descriptor))));
-    EXPECT_CALL(channel,
-                sendServerMessage(MsgEq(proto::SrvDeviceAdded(loc, 0))));
-    EXPECT_CALL(channel, sendServerMessage(MsgEq(proto::SrvUpdateEnd())));
-    EXPECT_CALL(channel, sendServerMessage(MsgEq(proto::SrvReadingsBegin())));
+    EXPECT_SRV_MSG(channel, proto::SrvInit());
+    EXPECT_SRV_MSG(channel, proto::SrvFullUpdateBegin());
+    EXPECT_SRV_MSG(channel, proto::SrvDescriptorAdded(0, descriptor));
+    EXPECT_SRV_MSG(channel, proto::SrvDeviceAdded(loc, 0));
+    EXPECT_SRV_MSG(channel, proto::SrvUpdateEnd());
+    EXPECT_SRV_MSG(channel, proto::SrvReadingsBegin());
     auto reading = proto::SrvReading(loc);
     proto::AddReading(reading, SensorId(""), nanf(""), 0);
-    EXPECT_CALL(channel, sendServerMessage(MsgEq(reading)));
-    EXPECT_CALL(channel, sendServerMessage(MsgEq(proto::SrvReadingsEnd())));
+    EXPECT_SRV_MSG(channel, reading);
+    EXPECT_SRV_MSG(channel, proto::SrvReadingsEnd());
     EXPECT_CALL(channel, registerClientMessageCallback(_));
   }
   UniverseServer server(universe, channel, executor);
@@ -324,12 +324,10 @@ TEST(ServerTest, SingleDeviceDisappearing) {
     // The initial comms (full snapshot).
     EXPECT_CALL(channel, sendServerMessage(_)).Times(8);
     // In response to devices changed, the disappearning device is noticed.
-    EXPECT_CALL(channel,
-                sendServerMessage(MsgEq(proto::SrvDeltaUpdateBegin())));
-    EXPECT_CALL(channel, sendServerMessage(MsgEq(proto::SrvDeviceRemoved(0))));
-    EXPECT_CALL(channel,
-                sendServerMessage(MsgEq(proto::SrvDescriptorRemoved(0))));
-    EXPECT_CALL(channel, sendServerMessage(MsgEq(proto::SrvUpdateEnd())));
+    EXPECT_SRV_MSG(channel, proto::SrvDeltaUpdateBegin());
+    EXPECT_SRV_MSG(channel, proto::SrvDeviceRemoved(0));
+    EXPECT_SRV_MSG(channel, proto::SrvDescriptorRemoved(0));
+    EXPECT_SRV_MSG(channel, proto::SrvUpdateEnd());
     EXPECT_CALL(channel, registerClientMessageCallback(_));
   }
   UniverseServer server(universe, channel, executor);
@@ -355,18 +353,15 @@ TEST(ServerTest, SingleDeviceDisappearingAndReappearing) {
     // The initial comms (full snapshot), plus device disappearing.
     EXPECT_CALL(channel, sendServerMessage(_)).Times(12);
     // Now, the reappearing device is noticed.
-    EXPECT_CALL(channel,
-                sendServerMessage(MsgEq(proto::SrvDeltaUpdateBegin())));
-    EXPECT_CALL(channel, sendServerMessage(
-                             MsgEq(proto::SrvDescriptorAdded(0, descriptor))));
-    EXPECT_CALL(channel,
-                sendServerMessage(MsgEq(proto::SrvDeviceAdded(loc, 0))));
-    EXPECT_CALL(channel, sendServerMessage(MsgEq(proto::SrvUpdateEnd())));
-    EXPECT_CALL(channel, sendServerMessage(MsgEq(proto::SrvReadingsBegin())));
+    EXPECT_SRV_MSG(channel, proto::SrvDeltaUpdateBegin());
+    EXPECT_SRV_MSG(channel, proto::SrvDescriptorAdded(0, descriptor));
+    EXPECT_SRV_MSG(channel, proto::SrvDeviceAdded(loc, 0));
+    EXPECT_SRV_MSG(channel, proto::SrvUpdateEnd());
+    EXPECT_SRV_MSG(channel, proto::SrvReadingsBegin());
     auto reading = proto::SrvReading(loc);
     proto::AddReading(reading, SensorId(""), nanf(""), 0);
-    EXPECT_CALL(channel, sendServerMessage(MsgEq(reading)));
-    EXPECT_CALL(channel, sendServerMessage(MsgEq(proto::SrvReadingsEnd())));
+    EXPECT_SRV_MSG(channel, reading);
+    EXPECT_SRV_MSG(channel, proto::SrvReadingsEnd());
     EXPECT_CALL(channel, registerClientMessageCallback(_));
   }
   UniverseServer server(universe, channel, executor);
@@ -400,18 +395,14 @@ TEST(ServerTest, ThreeDevicesBackAndForth) {
         .WillOnce(SaveArg<0>(&client));
 
     // Initial state.
-    EXPECT_CALL(channel, sendServerMessage(MsgEq(proto::SrvInit())));
-    EXPECT_CALL(channel, sendServerMessage(MsgEq(proto::SrvFullUpdateBegin())));
-    EXPECT_CALL(channel, sendServerMessage(
-                             MsgEq(proto::SrvDescriptorAdded(0, descriptor))));
-    EXPECT_CALL(channel,
-                sendServerMessage(MsgEq(proto::SrvDeviceAdded(loc3, 0))));
-    EXPECT_CALL(channel,
-                sendServerMessage(MsgEq(proto::SrvDeviceAdded(loc2, 0))));
-    EXPECT_CALL(channel,
-                sendServerMessage(MsgEq(proto::SrvDeviceAdded(loc1, 0))));
-    EXPECT_CALL(channel, sendServerMessage(MsgEq(proto::SrvUpdateEnd())));
-    EXPECT_CALL(channel, sendServerMessage(MsgEq(proto::SrvReadingsBegin())));
+    EXPECT_SRV_MSG(channel, proto::SrvInit());
+    EXPECT_SRV_MSG(channel, proto::SrvFullUpdateBegin());
+    EXPECT_SRV_MSG(channel, proto::SrvDescriptorAdded(0, descriptor));
+    EXPECT_SRV_MSG(channel, proto::SrvDeviceAdded(loc3, 0));
+    EXPECT_SRV_MSG(channel, proto::SrvDeviceAdded(loc2, 0));
+    EXPECT_SRV_MSG(channel, proto::SrvDeviceAdded(loc1, 0));
+    EXPECT_SRV_MSG(channel, proto::SrvUpdateEnd());
+    EXPECT_SRV_MSG(channel, proto::SrvReadingsBegin());
     {
       auto reading1 = proto::SrvReading(loc1);
       proto::AddReading(reading1, SensorId(""), 1.0f, 0);
@@ -419,65 +410,54 @@ TEST(ServerTest, ThreeDevicesBackAndForth) {
       proto::AddReading(reading2, SensorId(""), 2.0f, 0);
       auto reading3 = proto::SrvReading(loc3);
       proto::AddReading(reading3, SensorId(""), 3.0f, 0);
-      EXPECT_CALL(channel, sendServerMessage(MsgEq(reading3)));
-      EXPECT_CALL(channel, sendServerMessage(MsgEq(reading2)));
-      EXPECT_CALL(channel, sendServerMessage(MsgEq(reading1)));
+      EXPECT_SRV_MSG(channel, reading3);
+      EXPECT_SRV_MSG(channel, reading2);
+      EXPECT_SRV_MSG(channel, reading1);
     }
-    EXPECT_CALL(channel, sendServerMessage(MsgEq(proto::SrvReadingsEnd())));
+    EXPECT_SRV_MSG(channel, proto::SrvReadingsEnd());
 
     // Now, after loc2 and loc3 have been removed.
-    EXPECT_CALL(channel,
-                sendServerMessage(MsgEq(proto::SrvDeltaUpdateBegin())));
-    EXPECT_CALL(channel,
-                sendServerMessage(MsgEq(proto::SrvDevicesPreserved(2, 1))));
-    EXPECT_CALL(channel, sendServerMessage(MsgEq(proto::SrvDeviceRemoved(0))));
-    EXPECT_CALL(channel, sendServerMessage(MsgEq(proto::SrvDeviceRemoved(1))));
-    EXPECT_CALL(channel, sendServerMessage(MsgEq(proto::SrvUpdateEnd())));
+    EXPECT_SRV_MSG(channel, proto::SrvDeltaUpdateBegin());
+    EXPECT_SRV_MSG(channel, proto::SrvDevicesPreserved(2, 1));
+    EXPECT_SRV_MSG(channel, proto::SrvDeviceRemoved(0));
+    EXPECT_SRV_MSG(channel, proto::SrvDeviceRemoved(1));
+    EXPECT_SRV_MSG(channel, proto::SrvUpdateEnd());
 
     // Now, after loc2 and loc3 have been re-added.
-    EXPECT_CALL(channel,
-                sendServerMessage(MsgEq(proto::SrvDeltaUpdateBegin())));
-    EXPECT_CALL(channel,
-                sendServerMessage(MsgEq(proto::SrvDeviceAdded(loc3, 0))));
-    EXPECT_CALL(channel,
-                sendServerMessage(MsgEq(proto::SrvDeviceAdded(loc2, 0))));
-    EXPECT_CALL(channel,
-                sendServerMessage(MsgEq(proto::SrvDevicesPreserved(0, 1))));
-    EXPECT_CALL(channel, sendServerMessage(MsgEq(proto::SrvUpdateEnd())));
-    EXPECT_CALL(channel, sendServerMessage(MsgEq(proto::SrvReadingsBegin())));
+    EXPECT_SRV_MSG(channel, proto::SrvDeltaUpdateBegin());
+    EXPECT_SRV_MSG(channel, proto::SrvDeviceAdded(loc3, 0));
+    EXPECT_SRV_MSG(channel, proto::SrvDeviceAdded(loc2, 0));
+    EXPECT_SRV_MSG(channel, proto::SrvDevicesPreserved(0, 1));
+    EXPECT_SRV_MSG(channel, proto::SrvUpdateEnd());
+    EXPECT_SRV_MSG(channel, proto::SrvReadingsBegin());
     {
       auto reading2 = proto::SrvReading(loc2);
       proto::AddReading(reading2, SensorId(""), 2.0f, 0);
       auto reading3 = proto::SrvReading(loc3);
       proto::AddReading(reading3, SensorId(""), 3.0f, 0);
-      EXPECT_CALL(channel, sendServerMessage(MsgEq(reading3)));
-      EXPECT_CALL(channel, sendServerMessage(MsgEq(reading2)));
+      EXPECT_SRV_MSG(channel, reading3);
+      EXPECT_SRV_MSG(channel, reading2);
     }
-    EXPECT_CALL(channel, sendServerMessage(MsgEq(proto::SrvReadingsEnd())));
+    EXPECT_SRV_MSG(channel, proto::SrvReadingsEnd());
 
     // Now, after loc3 has been removed.
-    EXPECT_CALL(channel,
-                sendServerMessage(MsgEq(proto::SrvDeltaUpdateBegin())));
-    EXPECT_CALL(channel,
-                sendServerMessage(MsgEq(proto::SrvDevicesPreserved(1, 2))));
-    EXPECT_CALL(channel, sendServerMessage(MsgEq(proto::SrvDeviceRemoved(0))));
-    EXPECT_CALL(channel, sendServerMessage(MsgEq(proto::SrvUpdateEnd())));
+    EXPECT_SRV_MSG(channel, proto::SrvDeltaUpdateBegin());
+    EXPECT_SRV_MSG(channel, proto::SrvDevicesPreserved(1, 2));
+    EXPECT_SRV_MSG(channel, proto::SrvDeviceRemoved(0));
+    EXPECT_SRV_MSG(channel, proto::SrvUpdateEnd());
 
     // Now, after loc3 has been re-added.
-    EXPECT_CALL(channel,
-                sendServerMessage(MsgEq(proto::SrvDeltaUpdateBegin())));
-    EXPECT_CALL(channel,
-                sendServerMessage(MsgEq(proto::SrvDevicesPreserved(0, 2))));
-    EXPECT_CALL(channel,
-                sendServerMessage(MsgEq(proto::SrvDeviceAdded(loc3, 0))));
-    EXPECT_CALL(channel, sendServerMessage(MsgEq(proto::SrvUpdateEnd())));
-    EXPECT_CALL(channel, sendServerMessage(MsgEq(proto::SrvReadingsBegin())));
+    EXPECT_SRV_MSG(channel, proto::SrvDeltaUpdateBegin());
+    EXPECT_SRV_MSG(channel, proto::SrvDevicesPreserved(0, 2));
+    EXPECT_SRV_MSG(channel, proto::SrvDeviceAdded(loc3, 0));
+    EXPECT_SRV_MSG(channel, proto::SrvUpdateEnd());
+    EXPECT_SRV_MSG(channel, proto::SrvReadingsBegin());
     {
       auto reading3 = proto::SrvReading(loc3);
       proto::AddReading(reading3, SensorId(""), 3.0f, 0);
-      EXPECT_CALL(channel, sendServerMessage(MsgEq(reading3)));
+      EXPECT_SRV_MSG(channel, reading3);
     }
-    EXPECT_CALL(channel, sendServerMessage(MsgEq(proto::SrvReadingsEnd())));
+    EXPECT_SRV_MSG(channel, proto::SrvReadingsEnd());
 
     EXPECT_CALL(channel, registerClientMessageCallback(_));
   }
