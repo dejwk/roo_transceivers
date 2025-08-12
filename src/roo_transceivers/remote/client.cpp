@@ -212,7 +212,7 @@ void UniverseClient::handleServerMessage(
     }
 
     default: {
-      LOG(ERROR) << "Unexpected server message " << msg.which_contents;
+      LOG(WARNING) << "Unexpected server message " << msg.which_contents;
       break;
     }
   }
@@ -287,7 +287,9 @@ void UniverseClient::handleDeviceAdded(const DeviceLocator& locator,
   if (!synced_) return;
   auto itr = descriptors_.find(descriptor_key);
   if (itr == descriptors_.end()) {
-    LOG(ERROR) << "Unknown descriptor key " << descriptor_key;
+    LOG(WARNING)
+        << "Bogus server message (DeviceAdded): unknown descriptor key "
+        << descriptor_key;
     return;
   }
   updated_devices_.push_back(DeviceEntry{locator, descriptor_key});
@@ -309,13 +311,21 @@ void UniverseClient::handleDeviceRemoved(int prev_index) {
   const roo::lock_guard<roo::mutex> lock(state_guard_);
   if (!synced_) return;
   int descriptor_key;
+  if (prev_index < 0 || prev_index >= devices_.size()) {
+    LOG(WARNING) << "Bogus server message (DeviceRemoved): prev_index of "
+                 << prev_index << " is out of bounds; device count is "
+                 << devices_.size();
+    return;
+  }
   const DeviceLocator& locator = devices_[prev_index].locator;
   MLOG(roo_transceivers_remote_client) << "Received removed device " << locator;
   // Erase all readings.
   const roo_transceivers_Descriptor* descriptor =
       lookupDeviceDescriptor(locator, descriptor_key);
   if (descriptor == nullptr) {
-    LOG(ERROR) << "Missing device descriptor for " << locator;
+    LOG(WARNING) << "Bogus server message (DeviceRemoved): missing device "
+                    "descriptor for "
+                 << locator;
   } else {
     for (size_t i = 0; i < descriptor->sensors_count; ++i) {
       SensorLocator sensor_locator(locator, descriptor->sensors[i].id);
@@ -336,6 +346,12 @@ void UniverseClient::handleDevicePreserved(int prev_index_first, size_t count) {
   MLOG(roo_transceivers_remote_client)
       << "Received preserved devices (" << count << " at " << prev_index_first
       << ")";
+  if (prev_index_first < 0 || prev_index_first + count > devices_.size()) {
+    LOG(WARNING) << "Bogus server message (DevicePreserved): the range ("
+                 << prev_index_first << ", " << prev_index_first + count
+                 << ") is out of bounds; device count is " << devices_.size();
+    return;
+  }
   for (size_t i = 0; i < count; ++i) {
     updated_devices_.push_back(devices_[prev_index_first + i]);
   }
@@ -346,6 +362,12 @@ void UniverseClient::handleDeviceModified(int prev_index, int descriptor_key) {
       << "Received modified device at " << prev_index;
   const roo::lock_guard<roo::mutex> lock(state_guard_);
   if (!synced_) return;
+  if (prev_index < 0 || prev_index >= devices_.size()) {
+    LOG(WARNING) << "Bogus server message (DeviceModified): prev_index of "
+                 << prev_index << " is out of bounds; device count is "
+                 << devices_.size();
+    return;
+  }
   updated_devices_.push_back(
       DeviceEntry{devices_[prev_index].locator, descriptor_key});
 }
@@ -369,7 +391,9 @@ void UniverseClient::handleReadings(
   const roo_transceivers_Descriptor* descriptor =
       lookupDeviceDescriptor(device, descriptor_key);
   if (descriptor == nullptr) {
-    LOG(ERROR) << "Missing device descriptor for " << device;
+    LOG(WARNING)
+        << "Bogus server message (Readings): missing device descriptor for "
+        << device;
     return;
   }
   roo_time::Uptime now = roo_time::Uptime::Now();
