@@ -355,7 +355,8 @@ TEST(ServerTest, SingleDeviceDisappearingAndReappearing) {
     // The initial comms (full snapshot), plus device disappearing.
     EXPECT_CALL(channel, sendServerMessage(_)).Times(12);
     // Now, the reappearing device is noticed.
-    EXPECT_CALL(channel, sendServerMessage(MsgEq(proto::SrvDeltaUpdateBegin())));
+    EXPECT_CALL(channel,
+                sendServerMessage(MsgEq(proto::SrvDeltaUpdateBegin())));
     EXPECT_CALL(channel, sendServerMessage(
                              MsgEq(proto::SrvDescriptorAdded(0, descriptor))));
     EXPECT_CALL(channel,
@@ -374,6 +375,127 @@ TEST(ServerTest, SingleDeviceDisappearingAndReappearing) {
   ASSERT_TRUE(universe.remove(loc));
   server.devicesChanged();
   universe.add(loc, &t1);
+  server.devicesChanged();
+}
+
+TEST(ServerTest, ThreeDevicesBackAndForth) {
+  FakeThermometer t1;
+  FakeThermometer t2;
+  FakeThermometer t3;
+  DeviceLocator loc1("temp", "t1");
+  DeviceLocator loc2("temp", "t2");
+  DeviceLocator loc3("temp", "t3");
+  t1.set(1.0f);
+  t2.set(2.0f);
+  t3.set(3.0f);
+  TransceiverCollection universe({{loc1, &t1}, {loc2, &t2}, {loc3, &t3}});
+  DirectExecutor executor;
+  MockChannel channel;
+  roo_transceivers_Descriptor descriptor;
+  t1.getDescriptor(descriptor);
+  UniverseServerChannel::ClientMessageCb client;
+  {
+    InSequence s;
+    EXPECT_CALL(channel, registerClientMessageCallback(_))
+        .WillOnce(SaveArg<0>(&client));
+
+    // Initial state.
+    EXPECT_CALL(channel, sendServerMessage(MsgEq(proto::SrvInit())));
+    EXPECT_CALL(channel, sendServerMessage(MsgEq(proto::SrvFullUpdateBegin())));
+    EXPECT_CALL(channel, sendServerMessage(
+                             MsgEq(proto::SrvDescriptorAdded(0, descriptor))));
+    EXPECT_CALL(channel,
+                sendServerMessage(MsgEq(proto::SrvDeviceAdded(loc3, 0))));
+    EXPECT_CALL(channel,
+                sendServerMessage(MsgEq(proto::SrvDeviceAdded(loc2, 0))));
+    EXPECT_CALL(channel,
+                sendServerMessage(MsgEq(proto::SrvDeviceAdded(loc1, 0))));
+    EXPECT_CALL(channel, sendServerMessage(MsgEq(proto::SrvUpdateEnd())));
+    EXPECT_CALL(channel, sendServerMessage(MsgEq(proto::SrvReadingsBegin())));
+    {
+      auto reading1 = proto::SrvReading(loc1);
+      proto::AddReading(reading1, SensorId(""), 1.0f, 0);
+      auto reading2 = proto::SrvReading(loc2);
+      proto::AddReading(reading2, SensorId(""), 2.0f, 0);
+      auto reading3 = proto::SrvReading(loc3);
+      proto::AddReading(reading3, SensorId(""), 3.0f, 0);
+      EXPECT_CALL(channel, sendServerMessage(MsgEq(reading3)));
+      EXPECT_CALL(channel, sendServerMessage(MsgEq(reading2)));
+      EXPECT_CALL(channel, sendServerMessage(MsgEq(reading1)));
+    }
+    EXPECT_CALL(channel, sendServerMessage(MsgEq(proto::SrvReadingsEnd())));
+
+    // Now, after loc2 and loc3 have been removed.
+    EXPECT_CALL(channel,
+                sendServerMessage(MsgEq(proto::SrvDeltaUpdateBegin())));
+    EXPECT_CALL(channel,
+                sendServerMessage(MsgEq(proto::SrvDevicesPreserved(2, 1))));
+    EXPECT_CALL(channel, sendServerMessage(MsgEq(proto::SrvDeviceRemoved(0))));
+    EXPECT_CALL(channel, sendServerMessage(MsgEq(proto::SrvDeviceRemoved(1))));
+    EXPECT_CALL(channel, sendServerMessage(MsgEq(proto::SrvUpdateEnd())));
+
+    // Now, after loc2 and loc3 have been re-added.
+    EXPECT_CALL(channel,
+                sendServerMessage(MsgEq(proto::SrvDeltaUpdateBegin())));
+    EXPECT_CALL(channel,
+                sendServerMessage(MsgEq(proto::SrvDeviceAdded(loc3, 0))));
+    EXPECT_CALL(channel,
+                sendServerMessage(MsgEq(proto::SrvDeviceAdded(loc2, 0))));
+    EXPECT_CALL(channel,
+                sendServerMessage(MsgEq(proto::SrvDevicesPreserved(0, 1))));
+    EXPECT_CALL(channel, sendServerMessage(MsgEq(proto::SrvUpdateEnd())));
+    EXPECT_CALL(channel, sendServerMessage(MsgEq(proto::SrvReadingsBegin())));
+    {
+      auto reading2 = proto::SrvReading(loc2);
+      proto::AddReading(reading2, SensorId(""), 2.0f, 0);
+      auto reading3 = proto::SrvReading(loc3);
+      proto::AddReading(reading3, SensorId(""), 3.0f, 0);
+      EXPECT_CALL(channel, sendServerMessage(MsgEq(reading3)));
+      EXPECT_CALL(channel, sendServerMessage(MsgEq(reading2)));
+    }
+    EXPECT_CALL(channel, sendServerMessage(MsgEq(proto::SrvReadingsEnd())));
+
+    // Now, after loc3 has been removed.
+    EXPECT_CALL(channel,
+                sendServerMessage(MsgEq(proto::SrvDeltaUpdateBegin())));
+    EXPECT_CALL(channel,
+                sendServerMessage(MsgEq(proto::SrvDevicesPreserved(1, 2))));
+    EXPECT_CALL(channel, sendServerMessage(MsgEq(proto::SrvDeviceRemoved(0))));
+    EXPECT_CALL(channel, sendServerMessage(MsgEq(proto::SrvUpdateEnd())));
+
+    // Now, after loc3 has been re-added.
+    EXPECT_CALL(channel,
+                sendServerMessage(MsgEq(proto::SrvDeltaUpdateBegin())));
+    EXPECT_CALL(channel,
+                sendServerMessage(MsgEq(proto::SrvDevicesPreserved(0, 2))));
+    EXPECT_CALL(channel,
+                sendServerMessage(MsgEq(proto::SrvDeviceAdded(loc3, 0))));
+    EXPECT_CALL(channel, sendServerMessage(MsgEq(proto::SrvUpdateEnd())));
+    EXPECT_CALL(channel, sendServerMessage(MsgEq(proto::SrvReadingsBegin())));
+    {
+      auto reading3 = proto::SrvReading(loc3);
+      proto::AddReading(reading3, SensorId(""), 3.0f, 0);
+      EXPECT_CALL(channel, sendServerMessage(MsgEq(reading3)));
+    }
+    EXPECT_CALL(channel, sendServerMessage(MsgEq(proto::SrvReadingsEnd())));
+
+    EXPECT_CALL(channel, registerClientMessageCallback(_));
+  }
+  UniverseServer server(universe, channel, executor);
+  server.begin();
+  client(proto::ClientRequestState());
+  ASSERT_TRUE(universe.remove(loc2));
+  ASSERT_TRUE(universe.remove(loc3));
+  server.devicesChanged();
+
+  universe.add(loc2, &t2);
+  universe.add(loc3, &t3);
+  server.devicesChanged();
+
+  ASSERT_TRUE(universe.remove(loc3));
+  server.devicesChanged();
+
+  universe.add(loc3, &t3);
   server.devicesChanged();
 }
 
