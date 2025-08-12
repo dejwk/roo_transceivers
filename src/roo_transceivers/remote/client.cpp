@@ -1,6 +1,7 @@
 #include "roo_transceivers/remote/client.h"
 
 #include "roo_logging.h"
+#include "roo_transceivers/remote/proto.h"
 
 #if !defined(MLOG_roo_transceivers_remote_client)
 #define MLOG_roo_transceivers_remote_client 0
@@ -21,9 +22,7 @@ UniverseClient::~UniverseClient() {
 }
 
 void UniverseClient::begin() {
-  roo_transceivers_ClientMessage msg = roo_transceivers_ClientMessage_init_zero;
-  msg.which_contents = roo_transceivers_ClientMessage_request_state_tag;
-  channel_.sendClientMessage(msg);
+  channel_.sendClientMessage(proto::ClientRequestState());
 }
 
 size_t UniverseClient::deviceCount() const {
@@ -115,25 +114,12 @@ bool UniverseClient::write(const ActuatorLocator& locator, float value) {
       return false;
     }
   }
-  {
-    roo_transceivers_ClientMessage msg =
-        roo_transceivers_ClientMessage_init_zero;
-    msg.which_contents = roo_transceivers_ClientMessage_write_tag;
-    auto& payload = msg.contents.write;
-    strncpy(payload.device_locator_schema, locator.schema().c_str(), 16);
-    strncpy(payload.device_locator_id, locator.device_id().c_str(), 24);
-    strncpy(payload.device_locator_actuator_id, locator.actuator_id().c_str(),
-            24);
-    payload.value = value;
-    channel_.sendClientMessage(msg);
-  }
+  channel_.sendClientMessage(proto::ClientWrite(locator, value));
   return true;
 }
 
 void UniverseClient::requestUpdate() {
-  roo_transceivers_ClientMessage msg = roo_transceivers_ClientMessage_init_zero;
-  msg.which_contents = roo_transceivers_ClientMessage_request_update_tag;
-  channel_.sendClientMessage(msg);
+  channel_.sendClientMessage(proto::ClientRequestUpdate());
 }
 
 void UniverseClient::addEventListener(EventListener* listener) {
@@ -239,9 +225,7 @@ void UniverseClient::handleInit() {
     updated_devices_.clear();
     synced_ = false;
   }
-  roo_transceivers_ClientMessage msg = roo_transceivers_ClientMessage_init_zero;
-  msg.which_contents = roo_transceivers_ClientMessage_request_state_tag;
-  channel_.sendClientMessage(msg);
+  channel_.sendClientMessage(proto::ClientRequestState());
 }
 
 void UniverseClient::handleUpdateBegin(bool delta) {

@@ -119,14 +119,42 @@ roo_transceivers_ServerMessage SrvReading(const DeviceLocator& device) {
 
 void AddReading(roo_transceivers_ServerMessage& reading,
                 const SensorId& sensor_id, float value, uint64_t age_ms) {
-//   CHECK_EQ(reading.which_contents, roo_transceivers_ServerMessage_reading_tag);
+  //   CHECK_EQ(reading.which_contents,
+  //   roo_transceivers_ServerMessage_reading_tag);
   auto& payload = reading.contents.reading;
-//   CHECK_LT(payload.sensor_values_count, 16);
+  //   CHECK_LT(payload.sensor_values_count, 16);
   auto& val = payload.sensor_values[payload.sensor_values_count];
   strncpy(val.device_locator_sensor_id, sensor_id.c_str(), SensorId::kCapacity);
   val.value = value;
   val.age_ms = age_ms;
   ++payload.sensor_values_count;
+}
+
+roo_transceivers_ClientMessage ClientRequestUpdate() {
+  roo_transceivers_ClientMessage msg = roo_transceivers_ClientMessage_init_zero;
+  msg.which_contents = roo_transceivers_ClientMessage_request_update_tag;
+  return msg;
+}
+
+roo_transceivers_ClientMessage ClientRequestState() {
+  roo_transceivers_ClientMessage msg = roo_transceivers_ClientMessage_init_zero;
+  msg.which_contents = roo_transceivers_ClientMessage_request_state_tag;
+  return msg;
+}
+
+roo_transceivers_ClientMessage ClientWrite(const ActuatorLocator& actuator,
+                                           float value) {
+  roo_transceivers_ClientMessage msg = roo_transceivers_ClientMessage_init_zero;
+  msg.which_contents = roo_transceivers_ClientMessage_write_tag;
+  auto& payload = msg.contents.write;
+  strncpy(payload.device_locator_schema, actuator.schema().c_str(),
+          DeviceSchema::kCapacity);
+  strncpy(payload.device_locator_id, actuator.device_id().c_str(),
+          DeviceId::kCapacity);
+  strncpy(payload.device_locator_actuator_id, actuator.actuator_id().c_str(),
+          ActuatorId::kCapacity);
+  payload.value = value;
+  return msg;
 }
 
 }  // namespace proto

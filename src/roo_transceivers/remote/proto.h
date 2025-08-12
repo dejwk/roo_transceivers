@@ -39,6 +39,11 @@ roo_transceivers_ServerMessage SrvReading(const DeviceLocator& device);
 void AddReading(roo_transceivers_ServerMessage& reading,
                 const SensorId& sensor_id, float value, uint64_t age_ms);
 
+roo_transceivers_ClientMessage ClientRequestUpdate();
+roo_transceivers_ClientMessage ClientRequestState();
+roo_transceivers_ClientMessage ClientWrite(const ActuatorLocator& actuator,
+                                           float value);
+
 }  // namespace proto
 
 }  // namespace roo_transceivers
