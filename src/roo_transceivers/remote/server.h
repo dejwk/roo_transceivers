@@ -248,7 +248,7 @@ class UniverseServer : public EventListener {
 
   void handleRequestState();
 
-  void triggerTransmission();
+  void triggerTransmission(bool send_full_snapshot);
 
   void snapshotDevices();
   void snapshotSensorState();
@@ -256,7 +256,7 @@ class UniverseServer : public EventListener {
   // Send the handhake message.
   void transmitInit();
 
-  void transmissionLoop();
+  void transmissionLoop(bool send_full_snapshot);
 
   // Sends a single delta or snapshot over the channel.
   void transmit(bool is_delta);
@@ -281,10 +281,24 @@ class UniverseServer : public EventListener {
 
   State state_;
 
-  bool full_snapshot_requested_;
-  bool is_full_snapshot_;
+  // Indicates that the full snapshot has been sent at least once, and thus, we
+  // can assume that the client can interpret deltas. Guarded by state_guard_.
+  bool full_snapshot_transmitted_;
+
+  // Indicates that the transmit loop is currently active. Guarded by
+  // state_guard_.
   bool transmission_in_progress_;
+
+  // Set when RequestState is received by the client while the transmit loop is
+  // in progress. Guarded by state_guard_.
+  bool state_snapshot_pending_;
+
+  // Set when devicesChanged() gets called while the transmit loop is
+  // in progress. Guarded by state_guard_.
   bool device_update_pending_;
+
+  // Set when newReadingsAvaialble() gets called while the transmit loop is in
+  // progress. Guarded by state_guard_.
   bool readings_pending_;
 
   mutable roo::mutex state_guard_;

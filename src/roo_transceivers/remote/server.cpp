@@ -42,8 +42,9 @@ UniverseServer::UniverseServer(Universe& universe,
       channel_(channel),
       transmit_executor_(transmit_executor),
       state_(),
-      is_full_snapshot_(true),
+      full_snapshot_transmitted_(false),
       transmission_in_progress_(false),
+      state_snapshot_pending_(false),
       device_update_pending_(false),
       readings_pending_(false) {
   channel.registerClientMessageCallback(
@@ -61,6 +62,7 @@ UniverseServer::~UniverseServer() {
 void UniverseServer::begin() { transmitInit(); }
 
 void UniverseServer::devicesChanged() {
+  bool send_full_state;
   {
     roo::lock_guard<roo::mutex> lock(state_guard_);
     if (transmission_in_progress_) {
@@ -71,11 +73,13 @@ void UniverseServer::devicesChanged() {
     snapshotDevices();
     snapshotSensorState();
     transmission_in_progress_ = true;
+    send_full_state = !full_snapshot_transmitted_;
   }
-  triggerTransmission();
+  triggerTransmission(send_full_state);
 }
 
 void UniverseServer::newReadingsAvailable() {
+  bool send_full_state;
   {
     roo::lock_guard<roo::mutex> lock(state_guard_);
     if (transmission_in_progress_) {
@@ -85,10 +89,10 @@ void UniverseServer::newReadingsAvailable() {
     state_.clearDelta();
     snapshotDevices();
     snapshotSensorState();
-
     transmission_in_progress_ = true;
+    send_full_state = !full_snapshot_transmitted_;
   }
-  triggerTransmission();
+  triggerTransmission(send_full_state);
 }
 
 void UniverseServer::handleClientMessage(
@@ -123,20 +127,20 @@ void UniverseServer::handleRequestState() {
   {
     roo::lock_guard<roo::mutex> lock(state_guard_);
     if (transmission_in_progress_) {
-      full_snapshot_requested_ = true;
+      state_snapshot_pending_ = true;
       return;
     }
     state_.clearAll();
     snapshotDevices();
     snapshotSensorState();
-    is_full_snapshot_ = true;
     transmission_in_progress_ = true;
   }
-  triggerTransmission();
+  triggerTransmission(true);
 }
 
-void UniverseServer::triggerTransmission() {
-  transmit_executor_.execute([this]() { transmissionLoop(); });
+void UniverseServer::triggerTransmission(bool send_full_snapshot) {
+  transmit_executor_.execute(
+      [this, send_full_snapshot]() { transmissionLoop(send_full_snapshot); });
 }
 
 void UniverseServer::State::clearAll() {
@@ -343,13 +347,13 @@ void UniverseServer::transmitReadingsEnd() {
   channel_.sendServerMessage(proto::SrvReadingsEnd());
 }
 
-void UniverseServer::transmissionLoop() {
+void UniverseServer::transmissionLoop(bool send_full_snapshot) {
   bool is_delta;
   {
     roo::lock_guard<roo::mutex> lock(state_guard_);
     CHECK(transmission_in_progress_);
-    is_delta = !is_full_snapshot_;
-    is_full_snapshot_ = false;
+    is_delta = !send_full_snapshot;
+    send_full_snapshot = false;
     if (MLOG_IS_ON(roo_transceivers_remote_server)) {
       MLOG(roo_transceivers_remote_server) << "Pre-transmit state: ";
       for (const auto& device : state_.devices()) {
@@ -365,12 +369,15 @@ void UniverseServer::transmissionLoop() {
     {
       roo::lock_guard<roo::mutex> lock(state_guard_);
       CHECK(transmission_in_progress_);
-      if (full_snapshot_requested_) {
+      if (!is_delta) {
+        full_snapshot_transmitted_ = true;
+      }
+      if (state_snapshot_pending_) {
         state_.clearAll();
         snapshotDevices();
         snapshotSensorState();
-        is_full_snapshot_ = true;
-        full_snapshot_requested_ = false;
+        send_full_snapshot = true;
+        state_snapshot_pending_ = false;
       } else if (device_update_pending_) {
         state_.clearDelta();
         snapshotDevices();
@@ -382,7 +389,7 @@ void UniverseServer::transmissionLoop() {
         transmission_in_progress_ = false;
         return;
       }
-      is_delta = !is_full_snapshot_;
+      is_delta = !send_full_snapshot;
     }
   }
   MLOG(roo_transceivers_remote_server) << "End transmission";

@@ -96,6 +96,7 @@ namespace roo_transceivers {
 
 using testing::_;
 using testing::InSequence;
+using testing::SaveArg;
 using testing::Sequence;
 
 class FakeThermometer : public SimpleSensor {
@@ -249,6 +250,37 @@ TEST(ServerTest, SendInitAndDevicesUpdated) {
   UniverseServer server(universe, channel, executor);
   server.begin();
   server.devicesChanged();
+}
+
+TEST(ServerTest, SendInitAndRespondToClientGetFullShapshot) {
+  FakeThermometer t1;
+  DeviceLocator loc("temp", "t1");
+  TransceiverCollection universe({{loc, &t1}});
+  DirectExecutor executor;
+  MockChannel channel;
+  roo_transceivers_Descriptor descriptor;
+  t1.getDescriptor(descriptor);
+  UniverseServerChannel::ClientMessageCb client;
+  {
+    InSequence s;
+    EXPECT_CALL(channel, registerClientMessageCallback(_)).WillOnce(SaveArg<0>(&client));
+    EXPECT_CALL(channel, sendServerMessage(MsgEq(proto::SrvInit())));
+    EXPECT_CALL(channel, sendServerMessage(MsgEq(proto::SrvFullUpdateBegin())));
+    EXPECT_CALL(channel, sendServerMessage(
+                             MsgEq(proto::SrvDescriptorAdded(0, descriptor))));
+    EXPECT_CALL(channel,
+                sendServerMessage(MsgEq(proto::SrvDeviceAdded(loc, 0))));
+    EXPECT_CALL(channel, sendServerMessage(MsgEq(proto::SrvUpdateEnd())));
+    EXPECT_CALL(channel, sendServerMessage(MsgEq(proto::SrvReadingsBegin())));
+    auto reading = proto::SrvReading(loc);
+    proto::AddReading(reading, SensorId(""), nanf(""), 0);
+    EXPECT_CALL(channel, sendServerMessage(MsgEq(reading)));
+    EXPECT_CALL(channel, sendServerMessage(MsgEq(proto::SrvReadingsEnd())));
+    EXPECT_CALL(channel, registerClientMessageCallback(_));
+  }
+  UniverseServer server(universe, channel, executor);
+  server.begin();
+  client(proto::ClientRequestState());
 }
 
 }  // namespace roo_transceivers
