@@ -79,6 +79,8 @@ class UniverseServer : public EventListener {
  private:
   class State {
    public:
+    State() : next_descriptor_key_(0) {}
+
     size_t device_count() const { return devices_.size(); }
 
     void addDevice(const DeviceLocator& loc,
@@ -233,6 +235,9 @@ class UniverseServer : public EventListener {
 
     roo_collections::FlatSmallHashMap<int, roo_transceivers_Descriptor>
         descriptors_by_key_;
+
+    // Used as a hashtable key to identify device descriptors.
+    int next_descriptor_key_;
 
     roo_collections::FlatSmallHashMap<SensorLocator, SensorReading> readings_;
 

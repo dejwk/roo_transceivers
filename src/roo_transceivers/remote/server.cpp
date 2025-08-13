@@ -255,7 +255,7 @@ int UniverseServer::State::addDescriptorReference(
     key = itr->second.key;
   } else {
     // Not found; create a new entry.
-    key = descriptors_.size();
+    key = next_descriptor_key_++;
     descriptors_[descriptor] = DescriptorEntry{.key = key, .refcount = 1};
     descriptors_by_key_[key] = descriptor;
     is_new = true;
