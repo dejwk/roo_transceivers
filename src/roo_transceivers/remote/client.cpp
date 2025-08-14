@@ -13,7 +13,9 @@ UniverseClient::UniverseClient(UniverseClientChannel& channel)
     : channel_(channel), synced_(false) {
   channel.registerServerMessageCallback(
       [this](const roo_transceivers_ServerMessage& msg) {
-        handleServerMessage(msg);
+        if (!handleServerMessage(msg)) {
+          channel_.sendClientMessage(proto::ClientRequestState());
+        }
       });
 }
 
@@ -146,35 +148,29 @@ void UniverseClient::notifyReadingsAvailable() {
   }
 }
 
-void UniverseClient::handleServerMessage(
+bool UniverseClient::handleServerMessage(
     const roo_transceivers_ServerMessage& msg) {
   switch (msg.which_contents) {
     case roo_transceivers_ServerMessage_init_tag: {
-      handleInit();
-      break;
+      return handleInit();
     }
     case roo_transceivers_ServerMessage_transceiver_update_begin_tag: {
-      handleUpdateBegin(msg.contents.transceiver_update_begin.delta);
-      break;
+      return handleUpdateBegin(msg.contents.transceiver_update_begin.delta);
     }
     case roo_transceivers_ServerMessage_descriptor_added_tag: {
-      handleDescriptorAdded(msg.contents.descriptor_added.key,
-                            msg.contents.descriptor_added.descriptor);
-      break;
+      return handleDescriptorAdded(msg.contents.descriptor_added.key,
+                                   msg.contents.descriptor_added.descriptor);
     }
     case roo_transceivers_ServerMessage_descriptor_removed_tag: {
-      handleDescriptorRemoved(msg.contents.descriptor_removed.key);
-      break;
+      return handleDescriptorRemoved(msg.contents.descriptor_removed.key);
     }
     case roo_transceivers_ServerMessage_device_added_tag: {
       DeviceLocator loc(msg.contents.device_added.locator_schema,
                         msg.contents.device_added.locator_id);
-      handleDeviceAdded(loc, msg.contents.device_added.descriptor_key);
-      break;
+      return handleDeviceAdded(loc, msg.contents.device_added.descriptor_key);
     }
     case roo_transceivers_ServerMessage_device_removed_tag: {
-      handleDeviceRemoved(msg.contents.device_removed.prev_index);
-      break;
+      return handleDeviceRemoved(msg.contents.device_removed.prev_index);
     }
     case roo_transceivers_ServerMessage_device_preserved_tag: {
       size_t count = 1;
@@ -182,43 +178,37 @@ void UniverseClient::handleServerMessage(
       if (payload.has_count) {
         count = payload.count;
       }
-      handleDevicePreserved(payload.prev_index, count);
-      break;
+      return handleDevicePreserved(payload.prev_index, count);
     }
     case roo_transceivers_ServerMessage_device_modified_tag: {
-      handleDeviceModified(msg.contents.device_modified.prev_index,
-                           msg.contents.device_modified.descriptor_key);
-      break;
+      return handleDeviceModified(msg.contents.device_modified.prev_index,
+                                  msg.contents.device_modified.descriptor_key);
     }
     case roo_transceivers_ServerMessage_transceiver_update_end_tag: {
-      handleUpdateEnd();
-      break;
+      return handleUpdateEnd();
     }
     case roo_transceivers_ServerMessage_readings_begin_tag: {
-      handleReadingsBegin();
-      break;
+      return handleReadingsBegin();
     }
     case roo_transceivers_ServerMessage_reading_tag: {
       auto& payload = msg.contents.reading;
       DeviceLocator device(payload.device_locator_schema,
                            payload.device_locator_id);
-      handleReadings(device, payload.sensor_values,
-                     payload.sensor_values_count);
-      break;
+      return handleReadings(device, payload.sensor_values,
+                            payload.sensor_values_count);
     }
     case roo_transceivers_ServerMessage_readings_end_tag: {
-      handleReadingsEnd();
-      break;
+      return handleReadingsEnd();
     }
 
     default: {
       LOG(WARNING) << "Unexpected server message " << msg.which_contents;
-      break;
+      return false;
     }
   }
 }
 
-void UniverseClient::handleInit() {
+bool UniverseClient::handleInit() {
   {
     // Cancel the update, if any pending.
     roo::lock_guard<roo::mutex> lock(state_guard_);
@@ -226,9 +216,10 @@ void UniverseClient::handleInit() {
     synced_ = false;
   }
   channel_.sendClientMessage(proto::ClientRequestState());
+  return true;
 }
 
-void UniverseClient::handleUpdateBegin(bool delta) {
+bool UniverseClient::handleUpdateBegin(bool delta) {
   roo::lock_guard<roo::mutex> lock(state_guard_);
   if (!delta) {
     clearAll();
@@ -239,13 +230,15 @@ void UniverseClient::handleUpdateBegin(bool delta) {
     MLOG(roo_transceivers_remote_client)
         << "Received delta update begin message";
   }
-  CHECK(updated_devices_.empty());
+  // Protocol error if the update is already in progress.
+  if (!updated_devices_.empty()) return false;
+  return true;
 }
 
-void UniverseClient::handleUpdateEnd() {
+bool UniverseClient::handleUpdateEnd() {
   {
     roo::lock_guard<roo::mutex> lock(state_guard_);
-    if (!synced_) return;
+    if (!synced_) return true;
     devices_.swap(updated_devices_);
     updated_devices_.clear();
     device_idx_by_locator_.clear();
@@ -261,36 +254,39 @@ void UniverseClient::handleUpdateEnd() {
     }
   }
   notifyDevicesChanged();
+  return true;
 }
 
-void UniverseClient::handleDescriptorAdded(
+bool UniverseClient::handleDescriptorAdded(
     int key, const roo_transceivers_Descriptor& descriptor) {
   MLOG(roo_transceivers_remote_client) << "Received added descriptor";
   const roo::lock_guard<roo::mutex> lock(state_guard_);
-  if (!synced_) return;
+  if (!synced_) return true;
   descriptors_[key] = descriptor;
+  return true;
 }
 
-void UniverseClient::handleDescriptorRemoved(int key) {
-  MLOG(roo_transceivers_remote_client) << "Received removed descriptor";
+bool UniverseClient::handleDescriptorRemoved(int key) {
+  MLOG(roo_transceivers_remote_client) << "Received removed descriptor " << key;
   const roo::lock_guard<roo::mutex> lock(state_guard_);
-  if (!synced_) return;
+  if (!synced_) return true;
   // At this point we do not expect to have any devices pointing to this
   // descriptor.
   descriptors_.erase(key);
+  return true;
 }
 
-void UniverseClient::handleDeviceAdded(const DeviceLocator& locator,
+bool UniverseClient::handleDeviceAdded(const DeviceLocator& locator,
                                        int descriptor_key) {
   MLOG(roo_transceivers_remote_client) << "Received added device " << locator;
   const roo::lock_guard<roo::mutex> lock(state_guard_);
-  if (!synced_) return;
+  if (!synced_) return true;
   auto itr = descriptors_.find(descriptor_key);
   if (itr == descriptors_.end()) {
     LOG(WARNING)
         << "Bogus server message (DeviceAdded): unknown descriptor key "
         << descriptor_key;
-    return;
+    return false;
   }
   updated_devices_.push_back(DeviceEntry{locator, descriptor_key});
   const roo_transceivers_Descriptor& descriptor = itr->second;
@@ -305,17 +301,18 @@ void UniverseClient::handleDeviceAdded(const DeviceLocator& locator,
     ActuatorLocator actuator_locator(locator, descriptor.actuators[i].id);
     actuators_.insert(actuator_locator);
   }
+  return true;
 }
 
-void UniverseClient::handleDeviceRemoved(int prev_index) {
+bool UniverseClient::handleDeviceRemoved(int prev_index) {
   const roo::lock_guard<roo::mutex> lock(state_guard_);
-  if (!synced_) return;
+  if (!synced_) return true;
   int descriptor_key;
   if (prev_index < 0 || prev_index >= devices_.size()) {
     LOG(WARNING) << "Bogus server message (DeviceRemoved): prev_index of "
                  << prev_index << " is out of bounds; device count is "
                  << devices_.size();
-    return;
+    return false;
   }
   const DeviceLocator& locator = devices_[prev_index].locator;
   MLOG(roo_transceivers_remote_client) << "Received removed device " << locator;
@@ -326,23 +323,24 @@ void UniverseClient::handleDeviceRemoved(int prev_index) {
     LOG(WARNING) << "Bogus server message (DeviceRemoved): missing device "
                     "descriptor for "
                  << locator;
-  } else {
-    for (size_t i = 0; i < descriptor->sensors_count; ++i) {
-      SensorLocator sensor_locator(locator, descriptor->sensors[i].id);
-      readings_.erase(sensor_locator);
-    }
-    for (size_t i = 0; i < descriptor->actuators_count; ++i) {
-      ActuatorLocator actuator_locator(locator, descriptor->actuators[i].id);
-      actuators_.erase(actuator_locator);
-    }
+    return false;
+  }
+  for (size_t i = 0; i < descriptor->sensors_count; ++i) {
+    SensorLocator sensor_locator(locator, descriptor->sensors[i].id);
+    readings_.erase(sensor_locator);
+  }
+  for (size_t i = 0; i < descriptor->actuators_count; ++i) {
+    ActuatorLocator actuator_locator(locator, descriptor->actuators[i].id);
+    actuators_.erase(actuator_locator);
   }
   // That's it - we're not adding anything to updated_devices_, and
   // device_idx_by_locator will be refreshed on transceiver_update_end.
+  return true;
 }
 
-void UniverseClient::handleDevicePreserved(int prev_index_first, size_t count) {
+bool UniverseClient::handleDevicePreserved(int prev_index_first, size_t count) {
   const roo::lock_guard<roo::mutex> lock(state_guard_);
-  if (!synced_) return;
+  if (!synced_) return true;
   MLOG(roo_transceivers_remote_client)
       << "Received preserved devices (" << count << " at " << prev_index_first
       << ")";
@@ -350,26 +348,28 @@ void UniverseClient::handleDevicePreserved(int prev_index_first, size_t count) {
     LOG(WARNING) << "Bogus server message (DevicePreserved): the range ("
                  << prev_index_first << ", " << prev_index_first + count
                  << ") is out of bounds; device count is " << devices_.size();
-    return;
+    return false;
   }
   for (size_t i = 0; i < count; ++i) {
     updated_devices_.push_back(devices_[prev_index_first + i]);
   }
+  return true;
 }
 
-void UniverseClient::handleDeviceModified(int prev_index, int descriptor_key) {
+bool UniverseClient::handleDeviceModified(int prev_index, int descriptor_key) {
   MLOG(roo_transceivers_remote_client)
       << "Received modified device at " << prev_index;
   const roo::lock_guard<roo::mutex> lock(state_guard_);
-  if (!synced_) return;
+  if (!synced_) return true;
   if (prev_index < 0 || prev_index >= devices_.size()) {
     LOG(WARNING) << "Bogus server message (DeviceModified): prev_index of "
                  << prev_index << " is out of bounds; device count is "
                  << devices_.size();
-    return;
+    return false;
   }
   updated_devices_.push_back(
       DeviceEntry{devices_[prev_index].locator, descriptor_key});
+  return true;
 }
 
 void UniverseClient::clearAll() {
@@ -381,37 +381,49 @@ void UniverseClient::clearAll() {
   actuators_.clear();
 }
 
-void UniverseClient::handleReadings(
+bool UniverseClient::handleReadings(
     const DeviceLocator& device,
     const roo_transceivers_ServerMessage_Reading_SensorValue* readings,
     size_t readings_count) {
   const roo::lock_guard<roo::mutex> lock(state_guard_);
-  if (!synced_) return;
+  if (!synced_) return true;
   int descriptor_key;
   const roo_transceivers_Descriptor* descriptor =
       lookupDeviceDescriptor(device, descriptor_key);
   if (descriptor == nullptr) {
     LOG(WARNING)
         << "Bogus server message (Readings): missing device descriptor for "
-        << device;
-    return;
+        << device << ". Current count of known devices: " << devices_.size();
+    synced_ = false;
+    return false;
   }
   roo_time::Uptime now = roo_time::Uptime::Now();
   for (size_t i = 0; i < readings_count; ++i) {
     SensorLocator sensor_locator(device, readings[i].device_locator_sensor_id);
-    Measurement& m = readings_[sensor_locator];
+    auto itr = readings_.find(sensor_locator);
+    if (itr == readings_.end()) {
+      LOG(WARNING)
+          << "Bogus server message (Readings): sensor locator not found: "
+          << sensor_locator;
+      continue;
+    }
     // Overwrite the measurement with new value and time (but keep the
     // quantity).
     MLOG(roo_transceivers_remote_client)
         << "Received reading of " << sensor_locator << ": "
         << readings[i].value;
-    m = Measurement(m.quantity(), now - roo_time::Millis(readings[i].age_ms),
-                    readings[i].value);
+    itr->second = Measurement(itr->second.quantity(),
+                              now - roo_time::Millis(readings[i].age_ms),
+                              readings[i].value);
   }
+  return true;
 }
 
-void UniverseClient::handleReadingsBegin() {}
+bool UniverseClient::handleReadingsBegin() { return true; }
 
-void UniverseClient::handleReadingsEnd() { notifyReadingsAvailable(); }
+bool UniverseClient::handleReadingsEnd() {
+  notifyReadingsAvailable();
+  return true;
+}
 
 }  // namespace roo_transceivers

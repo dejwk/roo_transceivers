@@ -67,25 +67,27 @@ class UniverseClient : public Universe {
   const roo_transceivers_Descriptor* lookupDeviceDescriptor(
       const DeviceLocator& locator, int& descriptor_key) const;
 
-  // Called when a message is received from the server.
-  void handleServerMessage(const roo_transceivers_ServerMessage& msg);
+  // Called when a message is received from the server. Returns true on success;
+  // false on protocol error. If returns false, the client will attempt to
+  // recover by issuing RequestState.
+  bool handleServerMessage(const roo_transceivers_ServerMessage& msg);
 
-  void handleInit();
+  bool handleInit();
 
-  void handleDescriptorAdded(int key,
+  bool handleDescriptorAdded(int key,
                              const roo_transceivers_Descriptor& descriptor);
 
-  void handleDescriptorRemoved(int key);
+  bool handleDescriptorRemoved(int key);
 
-  void handleDevice(const DeviceLocator& locator, int descriptor_key);
+  bool handleDevice(const DeviceLocator& locator, int descriptor_key);
 
-  void handleDeviceAdded(const DeviceLocator& locator, int descriptor_key);
+  bool handleDeviceAdded(const DeviceLocator& locator, int descriptor_key);
 
-  void handleDeviceRemoved(int prev_index);
+  bool handleDeviceRemoved(int prev_index);
 
-  void handleDevicePreserved(int prev_index_first, size_t count);
+  bool handleDevicePreserved(int prev_index_first, size_t count);
 
-  void handleDeviceModified(int prev_index, int descriptor_key);
+  bool handleDeviceModified(int prev_index, int descriptor_key);
 
   // Helper method to propagate the devices event to listeners.
   void notifyDevicesChanged();
@@ -95,18 +97,18 @@ class UniverseClient : public Universe {
 
   void clearAll();
 
-  void handleUpdateBegin(bool delta);
+  bool handleUpdateBegin(bool delta);
 
-  void handleUpdateEnd();
+  bool handleUpdateEnd();
 
-  void handleReadingsBegin();
+  bool handleReadingsBegin();
 
-  void handleReadings(
+  bool handleReadings(
       const DeviceLocator& device,
       const roo_transceivers_ServerMessage_Reading_SensorValue* readings,
       size_t readings_count);
 
-  void handleReadingsEnd();
+  bool handleReadingsEnd();
 
   // The channel used to synchronize the state (i.e., receive measurements from
   // and push writes to) with the remote universe.
