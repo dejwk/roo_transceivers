@@ -36,6 +36,7 @@
         "dejwk/roo_logging": ">=1.0.4",
         "dejwk/roo_collections": ">=1.1.6",
         "dejwk/roo_prefs": ">=1.0.3",
+        "dejwk/roo_threads": ">=1.1.2",
         "dejwk/roo_time": ">0",
         "nanopb/nanopb": ">=0.4.9"
     }
