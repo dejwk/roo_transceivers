@@ -5,6 +5,8 @@
 #include "roo_collections/flat_small_hash_map.h"
 #include "roo_collections/flat_small_hash_set.h"
 #include "roo_logging.h"
+#include "roo_transceivers.h"
+#include "roo_transceivers.pb.h"
 #include "roo_transceivers/id.h"
 #include "roo_transceivers/notification.h"
 
