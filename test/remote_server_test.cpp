@@ -82,7 +82,7 @@ void PrintTo(const roo_transceivers_ServerMessage& msg, std::ostream* os) {
         (*os) << "(\"" << reading.device_locator_sensor_id
               << "\" : " << reading.value << ")";
       }
-      (*os) << " }\n";
+      (*os) << "] }\n";
       break;
     }
     default: {
@@ -228,6 +228,7 @@ TEST(ServerTest, SendInit) {
 
 TEST(ServerTest, SendInitAndDevicesUpdated) {
   FakeThermometer t1;
+  t1.set(25.0f);
   DeviceLocator loc("temp", "t1");
   TransceiverCollection universe({{loc, &t1}});
   DirectExecutor executor;
@@ -244,7 +245,7 @@ TEST(ServerTest, SendInitAndDevicesUpdated) {
     EXPECT_SRV_MSG(channel, proto::SrvUpdateEnd());
     EXPECT_SRV_MSG(channel, proto::SrvReadingsBegin());
     auto reading = proto::SrvReading(loc);
-    proto::AddReading(reading, SensorId(""), nanf(""), 0);
+    proto::AddReading(reading, SensorId(""), 25.0, 0);
     EXPECT_SRV_MSG(channel, reading);
     EXPECT_SRV_MSG(channel, proto::SrvReadingsEnd());
     EXPECT_CALL(channel, registerClientMessageCallback(_));
@@ -310,6 +311,7 @@ TEST(ServerTest,
 
 TEST(ServerTest, SingleDeviceDisappearing) {
   FakeThermometer t1;
+  t1.set(25.0f);
   DeviceLocator loc("temp", "t1");
   TransceiverCollection universe({{loc, &t1}});
   DirectExecutor executor;
@@ -339,6 +341,7 @@ TEST(ServerTest, SingleDeviceDisappearing) {
 
 TEST(ServerTest, SingleDeviceDisappearingAndReappearing) {
   FakeThermometer t1;
+  t1.set(25.0f);
   DeviceLocator loc("temp", "t1");
   TransceiverCollection universe({{loc, &t1}});
   DirectExecutor executor;
@@ -354,12 +357,12 @@ TEST(ServerTest, SingleDeviceDisappearingAndReappearing) {
     EXPECT_CALL(channel, sendServerMessage(_)).Times(12);
     // Now, the reappearing device is noticed.
     EXPECT_SRV_MSG(channel, proto::SrvDeltaUpdateBegin());
-    EXPECT_SRV_MSG(channel, proto::SrvDescriptorAdded(0, descriptor));
-    EXPECT_SRV_MSG(channel, proto::SrvDeviceAdded(loc, 0));
+    EXPECT_SRV_MSG(channel, proto::SrvDescriptorAdded(1, descriptor));
+    EXPECT_SRV_MSG(channel, proto::SrvDeviceAdded(loc, 1));
     EXPECT_SRV_MSG(channel, proto::SrvUpdateEnd());
     EXPECT_SRV_MSG(channel, proto::SrvReadingsBegin());
     auto reading = proto::SrvReading(loc);
-    proto::AddReading(reading, SensorId(""), nanf(""), 0);
+    proto::AddReading(reading, SensorId(""), 25.0, 0);
     EXPECT_SRV_MSG(channel, reading);
     EXPECT_SRV_MSG(channel, proto::SrvReadingsEnd());
     EXPECT_CALL(channel, registerClientMessageCallback(_));
