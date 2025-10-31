@@ -477,6 +477,8 @@ void UniverseServer::transmit(bool is_delta) {
                           (now - reading.time).inMillis());
         ++reading_offset;
       }
+      MLOG(roo_transceivers_remote_server)
+          << "Transmitting reading for " << group.device;
       channel_.sendServerMessage(msg);
     }
     transmitReadingsEnd();
