@@ -67,7 +67,7 @@ class BoundSensor {
   Measurement read() const {
     SensorLocator loc = binding_->get();
     if (loc.isDefined()) {
-      return universe_.read(binding_->get());
+      return universe_.read(loc);
     }
     return Measurement();
   }
@@ -138,7 +138,7 @@ class BoundActuator {
   bool write(float value) const {
     ActuatorLocator loc = binding_->get();
     if (loc.isDefined()) {
-      return universe_.write(binding_->get(), value);
+      return universe_.write(loc, value);
     }
     return false;
   }
@@ -169,7 +169,7 @@ class BoundSensingActuator {
   bool write(float value) const {
     ActuatorLocator loc = binding_->get();
     if (loc.isDefined()) {
-      return universe_.write(binding_->get(), value);
+      return universe_.write(loc, value);
     }
     return false;
   }
