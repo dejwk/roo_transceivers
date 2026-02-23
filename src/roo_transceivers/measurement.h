@@ -14,9 +14,7 @@ class Measurement {
         time_micros_(0),
         value_(nanf("")) {}
 
-  bool isInitial() const {
-    return (isnanf(value_) && time_micros_ == 0);
-  }
+  bool isInitial() const { return (isnanf(value_) && time_micros_ == 0); }
 
   bool isDefined() const {
     return (quantity_ != roo_transceivers_Quantity_kUnspecifiedQuantity &&
@@ -27,7 +25,7 @@ class Measurement {
               float value = nanf(""))
       : quantity_(quantity),
         time_micros_(time.inMicros() < (1LL << 52) ? time.inMicros()
-                                                   : (1LL << 52 - 1)),
+                                                   : ((1LL << 52) - 1)),
         value_(value) {}
 
   roo_transceivers_Quantity quantity() const { return quantity_; }
