@@ -308,7 +308,8 @@ bool UniverseClient::handleDeviceRemoved(int prev_index) {
   const roo::lock_guard<roo::mutex> lock(state_guard_);
   if (!synced_) return true;
   int descriptor_key;
-  if (prev_index < 0 || prev_index >= devices_.size()) {
+  if (prev_index < 0 ||
+      static_cast<size_t>(prev_index) >= devices_.size()) {
     LOG(WARNING) << "Bogus server message (DeviceRemoved): prev_index of "
                  << prev_index << " is out of bounds; device count is "
                  << devices_.size();
@@ -361,7 +362,8 @@ bool UniverseClient::handleDeviceModified(int prev_index, int descriptor_key) {
       << "Received modified device at " << prev_index;
   const roo::lock_guard<roo::mutex> lock(state_guard_);
   if (!synced_) return true;
-  if (prev_index < 0 || prev_index >= devices_.size()) {
+  if (prev_index < 0 ||
+      static_cast<size_t>(prev_index) >= devices_.size()) {
     LOG(WARNING) << "Bogus server message (DeviceModified): prev_index of "
                  << prev_index << " is out of bounds; device count is "
                  << devices_.size();

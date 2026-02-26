@@ -430,7 +430,8 @@ void UniverseServer::transmit(bool is_delta) {
             const auto& next_delta = state_.device_deltas()[i + 1];
             // const auto& next_device = state_.devices()[next_delta.locator];
             if (next_delta.status != State::DeviceDelta::PRESERVED ||
-                next_delta.old_ordinal != delta.old_ordinal + preserved_count) {
+                next_delta.old_ordinal !=
+                    delta.old_ordinal + static_cast<int>(preserved_count)) {
               break;
             }
             ++i;

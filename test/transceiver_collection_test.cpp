@@ -55,11 +55,11 @@ TEST(TransceiverCollectionTest, AddAndCountTransceivers) {
   DummyTransceiver t2(2);
   DeviceLocator l1("schema", "dev1");
   DeviceLocator l2("schema", "dev2");
-  EXPECT_EQ(collection.deviceCount(), 0);
+  EXPECT_EQ(collection.deviceCount(), 0u);
   collection.add(l1, &t1);
-  EXPECT_EQ(collection.deviceCount(), 1);
+  EXPECT_EQ(collection.deviceCount(), 1u);
   collection.add(l2, &t2);
-  EXPECT_EQ(collection.deviceCount(), 2);
+  EXPECT_EQ(collection.deviceCount(), 2u);
 }
 
 TEST(TransceiverCollectionTest, ForEachDevice) {
@@ -75,9 +75,9 @@ TEST(TransceiverCollectionTest, ForEachDevice) {
     found.insert(loc);
     return true;
   });
-  EXPECT_EQ(found.size(), 2);
-  EXPECT_GT(found.count(l1), 0);
-  EXPECT_GT(found.count(l2), 0);
+  EXPECT_EQ(found.size(), 2u);
+  EXPECT_GT(found.count(l1), 0u);
+  EXPECT_GT(found.count(l2), 0u);
 }
 
 TEST(TransceiverCollectionTest, GetDeviceDescriptor) {
@@ -181,7 +181,7 @@ TEST(TransceiverCollectionTest, ConstructorWithVector) {
   DeviceLocator l2("schema", "dev2");
   std::vector<TransceiverCollection::Entry> entries = {{l1, &t1}, {l2, &t2}};
   TransceiverCollection collection(entries);
-  EXPECT_EQ(collection.deviceCount(), 2);
+  EXPECT_EQ(collection.deviceCount(), 2u);
   roo_transceivers_Descriptor desc;
   EXPECT_TRUE(collection.getDeviceDescriptor(l1, desc));
   EXPECT_TRUE(collection.getDeviceDescriptor(l2, desc));
@@ -197,11 +197,11 @@ TEST(TransceiverCollectionTest, RemoveTransceiver) {
   // Add two devices.
   collection.add(l1, &t1);
   collection.add(l2, &t2);
-  EXPECT_EQ(collection.deviceCount(), 2);
+  EXPECT_EQ(collection.deviceCount(), 2u);
 
   // Remove first device.
   EXPECT_TRUE(collection.remove(l1));
-  EXPECT_EQ(collection.deviceCount(), 1);
+  EXPECT_EQ(collection.deviceCount(), 1u);
 
   // Ensure l1 is no longer present.
   roo_transceivers_Descriptor desc;
@@ -209,7 +209,7 @@ TEST(TransceiverCollectionTest, RemoveTransceiver) {
 
   // Remove second device.
   EXPECT_TRUE(collection.remove(l2));
-  EXPECT_EQ(collection.deviceCount(), 0);
+  EXPECT_EQ(collection.deviceCount(), 0u);
 
   // Removing again should return false.
   EXPECT_FALSE(collection.remove(l1));
