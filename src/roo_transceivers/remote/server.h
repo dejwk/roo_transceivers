@@ -40,30 +40,30 @@ class UniverseServerChannel {
   virtual void sendServerMessage(const roo_transceivers_ServerMessage& msg) = 0;
 };
 
-// The server keeps the cached state of the underlying universe, along with the
-// most recent delta. It also has state, which indicates whether a transmission
-// is currently in progress, and whether the universe state has changed since
-// the last snapshot was taken. At any given time, server is either not
-// transmitting (when there are no deltas to transmit), or it is transmitting
-// the most recent delta.
-//
-// Starting the transmission is always preceded with taking a new snapshot,
-// calculating the delta relative to the previous snapshot, and clearing the
-// state to 'unchanged'. The new snapshot and the delta then remains unchanged
-// during transmission.
-//
-// Upon receiving the change notification, if the server is currently
-// transmitting, the state is updated to indicate that the universe has changed,
-// but no other action is taken. If the transmission is not in progress, the
-// 'snapshot-delta-transmit' process is triggered.
-//
-// Upon finishing the transfer, if 'change' state is 'changed', the
-// 'snapshot-delta-transmit' is immediately triggered again (that is, a new
-// delta is calculated and a new transfer is immediately started). Otherwise,
-// the 'transmit' state is changed to 'not transmitting'.
-//
-// All state changes are guarded by a mutex, to synchronize transmits with
-// 'change' events.
+/// The server keeps cached universe state and the most recent delta.
+///
+/// It also tracks whether a transmission is in progress and whether the
+/// universe has changed since the last snapshot. At any given time, the server
+/// either is not transmitting (no deltas) or is transmitting the most recent
+/// delta.
+///
+/// Starting a transmission is always preceded by taking a new snapshot,
+/// calculating the delta relative to the previous snapshot, and clearing the
+/// state to "unchanged". The new snapshot and delta then remain unchanged
+/// during transmission.
+///
+/// Upon a change notification, if a transmission is in progress, the state is
+/// updated to indicate the universe has changed, but no other action is taken.
+/// If transmission is not in progress, the snapshot-delta-transmit process is
+/// triggered.
+///
+/// Upon finishing the transfer, if the "change" state is "changed", the
+/// snapshot-delta-transmit process is immediately triggered again (a new delta
+/// is calculated and a new transfer starts). Otherwise, the "transmit" state
+/// switches to "not transmitting".
+///
+/// All state changes are guarded by a mutex to synchronize transmits with
+/// change events.
 class UniverseServer : public EventListener {
  public:
   UniverseServer(Universe& universe, UniverseServerChannel& channel,

@@ -4,7 +4,7 @@
 
 namespace roo_transceivers {
 
-// For use with TransceiverCollection, below.
+/// Abstract transceiver interface used by `TransceiverCollection`.
 class Transceiver {
  public:
   Transceiver() = default;
@@ -35,12 +35,18 @@ class TransceiverCollection : public Universe, public EventListener {
     }
   }
 
+  /// Registers a transceiver under `locator`.
+  ///
+  /// Fails hard on duplicate locator.
   void add(const DeviceLocator& locator, Transceiver* device) {
     CHECK(transceivers_.insert(std::make_pair(locator, device)).second)
         << "Duplicate device locator: " << locator;
     device->addEventListener(this);
   }
 
+  /// Removes transceiver identified by `locator`.
+  ///
+  /// Returns `true` if an entry was removed.
   bool remove(const DeviceLocator& locator) {
     auto itr = transceivers_.find(locator);
     if (itr == transceivers_.end()) {
@@ -53,6 +59,10 @@ class TransceiverCollection : public Universe, public EventListener {
 
   size_t deviceCount() const override { return transceivers_.size(); }
 
+  /// Iterates over device locators.
+  ///
+  /// Callback returning `false` interrupts iteration and this method returns
+  /// `false`. Returning `true` continues iteration.
   bool forEachDevice(
       std::function<bool(const DeviceLocator&)> callback) const override {
     for (const auto& transceiver : transceivers_) {
@@ -61,6 +71,9 @@ class TransceiverCollection : public Universe, public EventListener {
     return true;
   }
 
+  /// Retrieves descriptor for a registered transceiver.
+  ///
+  /// Returns `false` when `locator` is unknown.
   bool getDeviceDescriptor(
       const DeviceLocator& locator,
       roo_transceivers_Descriptor& descriptor) const override {
@@ -70,12 +83,18 @@ class TransceiverCollection : public Universe, public EventListener {
     return true;
   }
 
+  /// Returns latest known measurement for `locator`.
+  ///
+  /// Unknown device or sensor returns initial/unspecified measurement.
   Measurement read(const SensorLocator& locator) const override {
     const auto& itr = transceivers_.find(locator.device_locator());
     return (itr != transceivers_.end()) ? itr->second->read(locator.sensor_id())
                                         : Measurement();
   }
 
+  /// Writes to the addressed actuator.
+  ///
+  /// Returns `false` when target device/actuator is unknown or write fails.
   bool write(const ActuatorLocator& locator, float value) override {
     auto itr = transceivers_.find(locator.device_locator());
     return (itr != transceivers_.end())
@@ -130,13 +149,13 @@ class TransceiverType {
     return descriptor_;
   }
 
-  // Returns -1 if not found.
+  /// Returns sensor index or `-1` if not found.
   int resolveSensorIndex(const SensorId& id) const {
     auto itr = sensors_.find(id);
     return (itr == sensors_.end()) ? -1 : itr->second;
   }
 
-  // Returns -1 if not found.
+  /// Returns actuator index or `-1` if not found.
   int resolveActuatorIndex(const ActuatorId& id) const {
     auto itr = actuators_.find(id);
     return (itr == actuators_.end()) ? -1 : itr->second;
@@ -148,12 +167,13 @@ class TransceiverType {
   roo_collections::FlatSmallHashMap<ActuatorId, int> actuators_;
 };
 
-// A transceiver with a statically defined descriptor. The class provides basic
-// implementations for all methods, ensuring input validation, and support for
-// even listener management.
+/// Transceiver with statically defined descriptor.
+///
+/// Provides default implementations with input validation and listener
+/// management.
 class SimpleTransceiver : public Transceiver {
  public:
-  // The provided type must outlive this transceiver.
+  /// `type` must outlive this transceiver.
   SimpleTransceiver(const TransceiverType* type) : type_(type) {}
 
   void getDescriptor(roo_transceivers_Descriptor& descriptor) const override {
@@ -181,12 +201,10 @@ class SimpleTransceiver : public Transceiver {
   }
 
  protected:
-  // The subclass can assume that the idx has been validated to be in the range
-  // implied by the descriptor.
+  /// Reads sensor by validated descriptor index.
   virtual Measurement readFromSensor(int idx) const = 0;
 
-  // The subclass can assume that the idx has been validated to be in the range
-  // implied by the descriptor.
+  /// Writes actuator by validated descriptor index.
   virtual bool writeToActuator(int idx, float value) = 0;
 
   void notifyNewReadingsAvailable() const {
@@ -199,12 +217,12 @@ class SimpleTransceiver : public Transceiver {
   roo_collections::FlatSmallHashSet<EventListener*> event_listeners_;
 };
 
-// A transceiver with just one statically defined sensor. The class provides
-// basic implementations for all methods, ensuring input validation, and support
-// for even listener management.
+/// Transceiver exposing one statically defined sensor and no actuators.
+///
+/// Provides validated defaults and listener management.
 class SimpleSensor : public Transceiver {
  public:
-  // The provided type must outlive this transceiver.
+  /// Constructs single-sensor transceiver metadata.
   SimpleSensor(roo_transceivers_Quantity quantity, SensorId id = "")
       : quantity_(quantity), id_(id) {}
 
@@ -244,4 +262,4 @@ class SimpleSensor : public Transceiver {
   roo_collections::FlatSmallHashSet<EventListener*> event_listeners_;
 };
 
-}
+}  // namespace roo_transceivers

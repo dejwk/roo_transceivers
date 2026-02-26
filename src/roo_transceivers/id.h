@@ -13,7 +13,7 @@ using DeviceId = roo_collections::SmallString<24>;
 using SensorId = roo_collections::SmallString<24>;
 using ActuatorId = roo_collections::SmallString<24>;
 
-// Identifies a transceiver device. Consists of the schema and a device ID.
+/// Identifies a transceiver device by schema and device id.
 class DeviceLocator {
  public:
   DeviceLocator();
@@ -42,8 +42,9 @@ inline bool operator!=(const DeviceLocator& a, const DeviceLocator& b) {
   return !(a == b);
 }
 
-// Identifies a single sensor within a transceiver device. Consists of the
-// device locator (schema and a device ID) and the sensor ID.
+/// Identifies sensor within a transceiver device.
+///
+/// Consists of device locator and sensor id.
 class SensorLocator {
  public:
   SensorLocator();
@@ -81,8 +82,9 @@ inline bool operator!=(const SensorLocator& a, const SensorLocator& b) {
   return !(a == b);
 }
 
-// Identifies a single actuator within a transceiver device. Consists of the
-// device locator (schema and a device ID) and the actuator ID.
+/// Identifies actuator within a transceiver device.
+///
+/// Consists of device locator and actuator id.
 class ActuatorLocator {
  public:
   ActuatorLocator();
