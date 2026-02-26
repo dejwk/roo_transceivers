@@ -7,6 +7,7 @@
 
 namespace roo_transceivers {
 
+/// Measurement of a quantity at a specific time.
 class Measurement {
  public:
   Measurement()
@@ -14,8 +15,10 @@ class Measurement {
         time_micros_(0),
         value_(nanf("")) {}
 
+  /// Returns true if this is the initial/empty measurement.
   bool isInitial() const { return (isnanf(value_) && time_micros_ == 0); }
 
+  /// Returns true if quantity and value are defined.
   bool isDefined() const {
     return (quantity_ != roo_transceivers_Quantity_kUnspecifiedQuantity &&
             !isnanf(value_));
@@ -28,14 +31,18 @@ class Measurement {
                                                    : ((1LL << 52) - 1)),
         value_(value) {}
 
+  /// Returns the quantity type.
   roo_transceivers_Quantity quantity() const { return quantity_; }
 
+  /// Returns the measurement timestamp.
   roo_time::Uptime time() const {
     return roo_time::Uptime::Start() + roo_time::Micros(time_micros_);
   }
 
+  /// Returns the measurement value.
   float value() const { return value_; }
 
+  /// Returns true if value is unknown (NaN).
   bool isUnknown() const { return isnanf(value_); }
 
  private:

@@ -4,8 +4,7 @@
 
 namespace roo_transceivers {
 
-// Multiverse is a transceiver universe that combines multiple other universes
-// into one.
+/// Universe that combines multiple other universes into one.
 class Multiverse : public Universe, public EventListener {
  public:
   Multiverse(std::vector<Universe*> universes)
@@ -88,4 +87,4 @@ class Multiverse : public Universe, public EventListener {
   roo_collections::FlatSmallHashSet<EventListener*> listeners_;
 };
 
-}
+}  // namespace roo_transceivers

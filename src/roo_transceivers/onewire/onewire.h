@@ -10,10 +10,12 @@ namespace roo_transceivers {
 
 namespace {
 
+/// Device schema string for OneWire thermometers.
 static const DeviceSchema kOneWireSchema = DeviceSchema("1-Wire");
 
-}
+}  // namespace
 
+/// Universe adapter exposing OneWire thermometers as transceivers.
 class OneWireUniverse : public SimpleSensorUniverse {
  public:
   OneWireUniverse(roo_onewire::OneWire& onewire)

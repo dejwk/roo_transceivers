@@ -15,6 +15,7 @@
 
 namespace roo_transceivers {
 
+/// Communication channel for UniverseClient.
 class UniverseClientChannel {
  public:
   using ServerMessageCb =
@@ -27,8 +28,7 @@ class UniverseClientChannel {
   virtual void sendClientMessage(const roo_transceivers_ClientMessage& msg) = 0;
 };
 
-// The universe that mirrors a remote universe, with with it synchronizes the
-// state using a bi-directional serial communication channel.
+/// Universe that mirrors a remote universe via a bidirectional channel.
 class UniverseClient : public Universe {
  public:
   struct DeviceEntry {

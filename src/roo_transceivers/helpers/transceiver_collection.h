@@ -22,13 +22,16 @@ class Transceiver {
 
 class TransceiverCollection : public Universe, public EventListener {
  public:
+  /// Entry pairing a device locator with a transceiver instance.
   struct Entry {
     DeviceLocator locator;
     Transceiver* instance;
   };
 
+  /// Creates an empty collection.
   TransceiverCollection() = default;
 
+  /// Creates a collection and registers the provided transceivers.
   TransceiverCollection(std::vector<Entry> transceivers) {
     for (auto& transceiver : transceivers) {
       add(transceiver.locator, transceiver.instance);
@@ -135,6 +138,7 @@ class TransceiverCollection : public Universe, public EventListener {
 
 class TransceiverType {
  public:
+  /// Builds index maps for a static descriptor.
   TransceiverType(roo_transceivers_Descriptor descriptor)
       : descriptor_(std::move(descriptor)) {
     for (size_t i = 0; i < descriptor.sensors_count; i++) {
