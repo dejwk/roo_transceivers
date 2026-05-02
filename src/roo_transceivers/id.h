@@ -146,6 +146,21 @@ inline bool operator!=(const ActuatorLocator& a, const ActuatorLocator& b) {
   return !(a == b);
 }
 
+roo_logging::Stream& operator<<(roo_logging::Stream& s,
+                                const DeviceSchema& schema);
+
+/// Streams a device locator in a human-readable form.
+roo_logging::Stream& operator<<(roo_logging::Stream& s,
+                                const DeviceLocator& loc);
+
+/// Streams a sensor locator in a human-readable form.
+roo_logging::Stream& operator<<(roo_logging::Stream& s,
+                                const SensorLocator& loc);
+
+/// Streams an actuator locator in a human-readable form.
+roo_logging::Stream& operator<<(roo_logging::Stream& s,
+                                const ActuatorLocator& loc);
+
 }  // namespace roo_transceivers
 
 namespace std {
@@ -186,18 +201,3 @@ struct hash<roo_transceivers::ActuatorLocator> {
 };
 
 }  // namespace std
-
-roo_logging::Stream& operator<<(roo_logging::Stream& s,
-                                const roo_transceivers::DeviceSchema& schema);
-
-/// Streams a device locator in a human-readable form.
-roo_logging::Stream& operator<<(roo_logging::Stream& s,
-                                const roo_transceivers::DeviceLocator& loc);
-
-/// Streams a sensor locator in a human-readable form.
-roo_logging::Stream& operator<<(roo_logging::Stream& s,
-                                const roo_transceivers::SensorLocator& loc);
-
-/// Streams an actuator locator in a human-readable form.
-roo_logging::Stream& operator<<(roo_logging::Stream& s,
-                                const roo_transceivers::ActuatorLocator& loc);

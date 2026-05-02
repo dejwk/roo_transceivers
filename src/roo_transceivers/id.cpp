@@ -77,22 +77,20 @@ std::string ActuatorLocator::toString() const {
   return std::string(buf);
 }
 
-}  // namespace roo_transceivers
-
 roo_logging::Stream& operator<<(roo_logging::Stream& s,
-                                const roo_transceivers::DeviceSchema& schema) {
+                                const DeviceSchema& schema) {
   s << schema.c_str();
   return s;
 }
 
 roo_logging::Stream& operator<<(roo_logging::Stream& s,
-                                const roo_transceivers::DeviceLocator& loc) {
+                                const DeviceLocator& loc) {
   s << loc.schema() << ":" << loc.device_id().c_str();
   return s;
 }
 
 roo_logging::Stream& operator<<(roo_logging::Stream& s,
-                                const roo_transceivers::SensorLocator& loc) {
+                                const SensorLocator& loc) {
   s << loc.device_locator();
   if (!loc.sensor_id().empty()) {
     s << "/" << loc.sensor_id().c_str();
@@ -101,10 +99,12 @@ roo_logging::Stream& operator<<(roo_logging::Stream& s,
 }
 
 roo_logging::Stream& operator<<(roo_logging::Stream& s,
-                                const roo_transceivers::ActuatorLocator& loc) {
+                                const ActuatorLocator& loc) {
   s << loc.device_locator();
   if (!loc.actuator_id().empty()) {
     s << "/" << loc.actuator_id().c_str();
   }
   return s;
 }
+
+}  // namespace roo_transceivers
