@@ -16,7 +16,8 @@ void id2key(int id, char* key) { sprintf(key, "r_%d", id); }
 using Rep = char[64];
 
 SensorLocator ArduinoPreferencesBindingStore::getSensorBinding(SensorKey key) {
-  roo_prefs::Transaction t(collection_, true);
+  roo_prefs::Transaction t(collection_,
+                           roo_prefs::Transaction::Mode::kReadOnly);
   char skey[16];
   id2key(key, skey);
   Rep rep;
@@ -51,7 +52,8 @@ void ArduinoPreferencesBindingStore::clearSensorBinding(SensorKey key) {
 
 ActuatorLocator ArduinoPreferencesBindingStore::getActuatorBinding(
     ActuatorKey key) {
-  roo_prefs::Transaction t(collection_, true);
+  roo_prefs::Transaction t(collection_,
+                           roo_prefs::Transaction::Mode::kReadOnly);
   char skey[16];
   id2key(key, skey);
   Rep rep;
@@ -85,7 +87,8 @@ void ArduinoPreferencesBindingStore::clearActuatorBinding(ActuatorKey key) {
 }
 
 DeviceLocator ArduinoPreferencesBindingStore::getDeviceBinding(DeviceKey key) {
-  roo_prefs::Transaction t(collection_, true);
+  roo_prefs::Transaction t(collection_,
+                           roo_prefs::Transaction::Mode::kReadOnly);
   char skey[16];
   id2key(key, skey);
   Rep rep;
