@@ -133,6 +133,47 @@ class DirectExecutor : public Executor {
   void execute(std::function<void()> task) override { task(); }
 };
 
+// Makes the device order explicit for server tests that validate ordinal-based
+// update messages. TransceiverCollection itself intentionally iterates a hash
+// table, whose order is not part of its contract.
+class OrderedTransceiverCollection : public TransceiverCollection {
+ public:
+  using Entry = TransceiverCollection::Entry;
+
+  OrderedTransceiverCollection(std::initializer_list<Entry> transceivers) {
+    for (const auto& transceiver : transceivers) {
+      add(transceiver.locator, transceiver.instance);
+    }
+  }
+
+  void add(const DeviceLocator& locator, Transceiver* device) {
+    TransceiverCollection::add(locator, device);
+    device_order_.insert(device_order_.begin(), locator);
+  }
+
+  bool remove(const DeviceLocator& locator) {
+    if (!TransceiverCollection::remove(locator)) return false;
+    for (auto itr = device_order_.begin(); itr != device_order_.end(); ++itr) {
+      if (*itr == locator) {
+        device_order_.erase(itr);
+        break;
+      }
+    }
+    return true;
+  }
+
+  bool forEachDevice(
+      std::function<bool(const DeviceLocator&)> callback) const override {
+    for (const auto& locator : device_order_) {
+      if (!callback(locator)) return false;
+    }
+    return true;
+  }
+
+ private:
+  std::vector<DeviceLocator> device_order_;
+};
+
 MATCHER_P(MsgEq, msg, "") {
   if (arg.which_contents != msg.which_contents) return false;
   switch (arg.which_contents) {
@@ -386,12 +427,14 @@ TEST(ServerTest, ThreeDevicesBackAndForth) {
   t1.set(1.0f);
   t2.set(2.0f);
   t3.set(3.0f);
-  TransceiverCollection universe({{loc1, &t1}, {loc2, &t2}, {loc3, &t3}});
+  OrderedTransceiverCollection universe(
+      {{loc1, &t1}, {loc2, &t2}, {loc3, &t3}});
   DirectExecutor executor;
   MockChannel channel;
   roo_transceivers_Descriptor descriptor;
   t1.getDescriptor(descriptor);
   UniverseServerChannel::ClientMessageCb client;
+  std::vector<int> removed_prev_indices;
   {
     InSequence s;
     EXPECT_CALL(channel, registerClientMessageCallback(_))
@@ -422,8 +465,13 @@ TEST(ServerTest, ThreeDevicesBackAndForth) {
     // Now, after loc2 and loc3 have been removed.
     EXPECT_SRV_MSG(channel, proto::SrvDeltaUpdateBegin());
     EXPECT_SRV_MSG(channel, proto::SrvDevicesPreserved(2, 1));
-    EXPECT_SRV_MSG(channel, proto::SrvDeviceRemoved(0));
-    EXPECT_SRV_MSG(channel, proto::SrvDeviceRemoved(1));
+    EXPECT_CALL(channel, sendServerMessage(_))
+        .Times(2)
+        .WillRepeatedly([&](const roo_transceivers_ServerMessage& msg) {
+          ASSERT_EQ(msg.which_contents,
+                    roo_transceivers_ServerMessage_device_removed_tag);
+          removed_prev_indices.push_back(msg.contents.device_removed.prev_index);
+        });
     EXPECT_SRV_MSG(channel, proto::SrvUpdateEnd());
 
     // Now, after loc2 and loc3 have been re-added.
@@ -451,8 +499,8 @@ TEST(ServerTest, ThreeDevicesBackAndForth) {
 
     // Now, after loc3 has been re-added.
     EXPECT_SRV_MSG(channel, proto::SrvDeltaUpdateBegin());
-    EXPECT_SRV_MSG(channel, proto::SrvDevicesPreserved(0, 2));
     EXPECT_SRV_MSG(channel, proto::SrvDeviceAdded(loc3, 0));
+    EXPECT_SRV_MSG(channel, proto::SrvDevicesPreserved(0, 2));
     EXPECT_SRV_MSG(channel, proto::SrvUpdateEnd());
     EXPECT_SRV_MSG(channel, proto::SrvReadingsBegin());
     {
@@ -477,6 +525,8 @@ TEST(ServerTest, ThreeDevicesBackAndForth) {
 
   ASSERT_TRUE(universe.remove(loc3));
   server.devicesChanged();
+
+  EXPECT_THAT(removed_prev_indices, testing::UnorderedElementsAre(0, 1));
 
   universe.add(loc3, &t3);
   server.devicesChanged();
