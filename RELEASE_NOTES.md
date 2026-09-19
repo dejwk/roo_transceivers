@@ -1,3 +1,12 @@
+# roo_transceivers 1.2.0
+
+- Updated Roo dependencies in Bazel and PlatformIO: `roo_collections` 1.4.7, `roo_logging` 1.5.10, `roo_prefs` 1.3.2, `roo_threads` 1.2.8, and `roo_time` 2.0.0.
+- Updated Bazel dependencies to `rules_cc` 0.2.25, `googletest` 1.18.0.bcr.1, and `nanopb` 0.4.9.1.bcr.3.
+- Updated test tooling and shared CI workflow to `roo_testing` 2.1.2.
+- Added consolidated release notes for previous versions.
+
+---
+
 # [roo_transceivers 1.1.7](https://github.com/dejwk/roo_transceivers/releases/tag/1.1.7)
 
 Published 2026-08-30.
