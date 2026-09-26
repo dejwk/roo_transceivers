@@ -1,3 +1,13 @@
+# roo_transceivers 1.3.0
+
+- **Breaking API change:** Replaced nanopb with `roo_pb` ≥0.1.0, requiring C++17. Migrate to namespaced message types, generated accessors, scoped `Quantity` values, and `roo_pb` serialization.
+- Preserved protocol field numbers and message capacities; added wire-format and bounded-message regression tests.
+- Added automatic protocol generation in Bazel and updated generation tooling and migration documentation.
+- Upgraded dependencies: `roo_collections` 1.4.8, `roo_logging` 1.5.11, `roo_prefs` 2.0.2, `roo_threads` 1.2.9, `roo_time` 2.0.1, and `roo_testing` 2.3.0.
+- Updated ESP32 test tooling with ESP-IDF profile support, automatic profile selection for ESP-IDF example runs, and a helper to test both Arduino and ESP-IDF profiles.
+
+---
+
 # roo_transceivers 1.2.0
 
 - Updated Roo dependencies in Bazel and PlatformIO: `roo_collections` 1.4.7, `roo_logging` 1.5.10, `roo_prefs` 1.3.2, `roo_threads` 1.2.8, and `roo_time` 2.0.0.
