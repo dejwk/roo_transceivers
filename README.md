@@ -16,12 +16,9 @@ follow their canonical-source headers when refreshing them.
 
 ## Protocol generation
 
-The protocol uses `roo_pb` and requires C++17. For now, keep `roo_pb` and
-`roo_io` checkouts beside this repository: `MODULE.bazel` selects them with
-local path overrides. PlatformIO's `library.json` also selects `../roo_pb`;
-Arduino users should install these local libraries in their library directory.
-Bazel applications consuming this library must set the same overrides in their
-root module, since dependency modules' overrides do not propagate.
+The protocol uses `roo_pb` 0.1.0 or newer and requires C++17. Bazel and
+PlatformIO resolve the published dependencies declared in `MODULE.bazel` and
+`library.json`. Arduino users should install `roo_pb` and its dependencies.
 
 The `@roo_pb//:defs.bzl` `roo_pb_library` rule regenerates
 `proto_generated/roo_transceivers.pb.h` whenever the schema,

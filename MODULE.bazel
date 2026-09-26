@@ -6,10 +6,6 @@ bazel_dep(name = "googletest", version = "1.18.0.bcr.1")
 
 bazel_dep(name = "roo_pb", version = "0.1.0")
 
-# Temporary overrides until roo_pb and its required roo_io changes are published.
-local_path_override(module_name = "roo_pb", path = "../roo_pb")
-local_path_override(module_name = "roo_io", path = "../roo_io")
-
 bazel_dep(name = "roo_collections", version = "1.4.7")
 bazel_dep(name = "roo_logging", version = "1.5.10")
 bazel_dep(name = "roo_prefs", version = "1.3.2")
