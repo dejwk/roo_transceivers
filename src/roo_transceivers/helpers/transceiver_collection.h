@@ -10,7 +10,8 @@ class Transceiver {
   Transceiver() = default;
   virtual ~Transceiver() = default;
 
-  virtual void getDescriptor(roo_transceivers_Descriptor& descriptor) const = 0;
+  virtual void getDescriptor(
+      roo_transceivers::Descriptor& descriptor) const = 0;
 
   virtual Measurement read(const SensorId& sensor) const = 0;
   virtual bool write(const ActuatorId& actuator, float value) = 0;
@@ -79,7 +80,7 @@ class TransceiverCollection : public Universe, public EventListener {
   /// Returns `false` when `locator` is unknown.
   bool getDeviceDescriptor(
       const DeviceLocator& locator,
-      roo_transceivers_Descriptor& descriptor) const override {
+      roo_transceivers::Descriptor& descriptor) const override {
     const auto& itr = transceivers_.find(locator);
     if (itr == transceivers_.end()) return false;
     itr->second->getDescriptor(descriptor);
@@ -139,17 +140,17 @@ class TransceiverCollection : public Universe, public EventListener {
 class TransceiverType {
  public:
   /// Builds index maps for a static descriptor.
-  TransceiverType(roo_transceivers_Descriptor descriptor)
+  TransceiverType(roo_transceivers::Descriptor descriptor)
       : descriptor_(std::move(descriptor)) {
-    for (size_t i = 0; i < descriptor.sensors_count; i++) {
-      sensors_[descriptor.sensors[i].id] = i;
+    for (size_t i = 0; i < descriptor.sensors_size(); i++) {
+      sensors_[descriptor.sensors(i).id().c_str()] = i;
     }
-    for (size_t i = 0; i < descriptor.actuators_count; i++) {
-      actuators_[descriptor.actuators[i].id] = i;
+    for (size_t i = 0; i < descriptor.actuators_size(); i++) {
+      actuators_[descriptor.actuators(i).id().c_str()] = i;
     }
   }
 
-  const roo_transceivers_Descriptor& getDescriptor() const {
+  const roo_transceivers::Descriptor& getDescriptor() const {
     return descriptor_;
   }
 
@@ -166,7 +167,7 @@ class TransceiverType {
   }
 
  private:
-  roo_transceivers_Descriptor descriptor_;
+  roo_transceivers::Descriptor descriptor_;
   roo_collections::FlatSmallHashMap<SensorId, int> sensors_;
   roo_collections::FlatSmallHashMap<ActuatorId, int> actuators_;
 };
@@ -180,7 +181,7 @@ class SimpleTransceiver : public Transceiver {
   /// `type` must outlive this transceiver.
   SimpleTransceiver(const TransceiverType* type) : type_(type) {}
 
-  void getDescriptor(roo_transceivers_Descriptor& descriptor) const override {
+  void getDescriptor(roo_transceivers::Descriptor& descriptor) const override {
     descriptor = type_->getDescriptor();
   }
 
@@ -227,14 +228,14 @@ class SimpleTransceiver : public Transceiver {
 class SimpleSensor : public Transceiver {
  public:
   /// Constructs single-sensor transceiver metadata.
-  SimpleSensor(roo_transceivers_Quantity quantity, SensorId id = "")
+  SimpleSensor(roo_transceivers::Quantity quantity, SensorId id = "")
       : quantity_(quantity), id_(id) {}
 
-  void getDescriptor(roo_transceivers_Descriptor& descriptor) const override {
-    descriptor.sensors_count = 1;
-    strncpy(descriptor.sensors[0].id, id_.c_str(), SensorId::kCapacity);
-    descriptor.sensors[0].quantity = quantity_;
-    descriptor.actuators_count = 0;
+  void getDescriptor(roo_transceivers::Descriptor& descriptor) const override {
+    descriptor.Clear();
+    auto* sensor = descriptor.add_sensors();
+    sensor->set_id(id_.c_str());
+    sensor->set_quantity(quantity_);
   }
 
   Measurement read(const SensorId& sensor) const override {
@@ -261,7 +262,7 @@ class SimpleSensor : public Transceiver {
     }
   }
 
-  roo_transceivers_Quantity quantity_;
+  roo_transceivers::Quantity quantity_;
   SensorId id_;
   roo_collections::FlatSmallHashSet<EventListener*> event_listeners_;
 };

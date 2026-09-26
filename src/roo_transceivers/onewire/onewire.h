@@ -46,17 +46,17 @@ class OneWireUniverse : public SimpleSensorUniverse {
         roo_onewire::RomCode::FromString(locator.device_id().c_str());
     const roo_onewire::Thermometer* t =
         onewire_.thermometers().thermometerByRomCode(rom_code);
-    return Measurement(roo_transceivers_Quantity_kTemperature,
+    return Measurement(roo_transceivers::Quantity::kTemperature,
                        roo_time::Uptime::Now(),
                        t == nullptr ? nanf("") : t->temperature().degCelcius());
   }
 
-  roo_transceivers_Quantity getSensorQuantity(
+  roo_transceivers::Quantity getSensorQuantity(
       DeviceLocator device_locator) const override {
     if (device_locator.schema() != kOneWireSchema) {
-      return roo_transceivers_Quantity_kUnspecifiedQuantity;
+      return roo_transceivers::Quantity::kUnspecifiedQuantity;
     }
-    return roo_transceivers_Quantity_kTemperature;
+    return roo_transceivers::Quantity::kTemperature;
   }
 
   void requestUpdate() override { onewire_.update(); }

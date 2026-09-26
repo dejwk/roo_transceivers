@@ -86,15 +86,15 @@ A device descriptor tells the application which sensors and actuators a device
 has, along with the quantity represented by each endpoint.
 
 ```cpp
-roo_transceivers_Descriptor descriptor = {};
+roo_transceivers::Descriptor descriptor = {};
 if (universe.getDeviceDescriptor(device, descriptor)) {
-  for (size_t i = 0; i < descriptor.sensors_count; ++i) {
+  for (size_t i = 0; i < descriptor.sensors_size(); ++i) {
     Serial.print("sensor id: ");
-    Serial.println(descriptor.sensors[i].id);
+    Serial.println(descriptor.sensors(i).id().c_str());
   }
-  for (size_t i = 0; i < descriptor.actuators_count; ++i) {
+  for (size_t i = 0; i < descriptor.actuators_size(); ++i) {
     Serial.print("actuator id: ");
-    Serial.println(descriptor.actuators[i].id);
+    Serial.println(descriptor.actuators(i).id().c_str());
   }
 }
 ```
@@ -106,8 +106,8 @@ current reading. That separation is deliberate.
 The quantity enum describes what a floating-point value means. Two sensors may
 have different ids but the same quantity. For example, several different
 temperature sensors may all report
-`roo_transceivers_Quantity_kTemperature`, while relays typically use
-`roo_transceivers_Quantity_kBinaryState`.
+`roo_transceivers::Quantity::kTemperature`, while relays typically use
+`roo_transceivers::Quantity::kBinaryState`.
 
 In application code, the normal pattern is:
 
@@ -165,7 +165,7 @@ float readTemperatureFromHardware();
 class Thermometer : public SimpleSensor {
  public:
   Thermometer()
-      : SimpleSensor(roo_transceivers_Quantity_kTemperature, "temperature") {}
+      : SimpleSensor(roo_transceivers::Quantity::kTemperature, "temperature") {}
 
   void sample() {
     temperature_c_ = readTemperatureFromHardware();
@@ -214,21 +214,21 @@ universe and reading descriptors.
 ```cpp
 void dumpUniverse(Universe& universe) {
   universe.forEachDevice([&](const DeviceLocator& device) {
-    roo_transceivers_Descriptor descriptor = {};
+    roo_transceivers::Descriptor descriptor = {};
     if (!universe.getDeviceDescriptor(device, descriptor)) {
       return true;
     }
 
     Serial.println(device.toString().c_str());
 
-    for (size_t i = 0; i < descriptor.sensors_count; ++i) {
+    for (size_t i = 0; i < descriptor.sensors_size(); ++i) {
       Serial.print("  sensor: ");
-      Serial.println(descriptor.sensors[i].id);
+      Serial.println(descriptor.sensors(i).id().c_str());
     }
 
-    for (size_t i = 0; i < descriptor.actuators_count; ++i) {
+    for (size_t i = 0; i < descriptor.actuators_size(); ++i) {
       Serial.print("  actuator: ");
-      Serial.println(descriptor.actuators[i].id);
+      Serial.println(descriptor.actuators(i).id().c_str());
     }
     return true;
   });

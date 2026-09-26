@@ -10,7 +10,7 @@
 #include "roo_transceivers/id.h"
 #include "roo_transceivers/universe.h"
 
-roo_transceivers_Descriptor* getFakeRooRelay4pDescriptor();
+roo_transceivers::Descriptor* getFakeRooRelay4pDescriptor();
 
 class FakeRooRelay4p : public FakeTransceiver {
  public:

@@ -21,15 +21,15 @@ class SimpleSensorUniverse : public Universe {
   /// Returns `false` when `locator` is not recognized by this universe.
   bool getDeviceDescriptor(
       const DeviceLocator& locator,
-      roo_transceivers_Descriptor& descriptor) const override {
-    roo_transceivers_Quantity quantity = getSensorQuantity(locator);
-    if (quantity == roo_transceivers_Quantity_kUnspecifiedQuantity) {
+      roo_transceivers::Descriptor& descriptor) const override {
+    roo_transceivers::Quantity quantity = getSensorQuantity(locator);
+    if (quantity == roo_transceivers::Quantity::kUnspecifiedQuantity) {
       return false;
     }
-    descriptor.sensors_count = 1;
-    descriptor.sensors[0].id[0] = 0;
-    descriptor.sensors[0].quantity = quantity;
-    descriptor.actuators_count = 0;
+    descriptor.Clear();
+    auto* sensor = descriptor.add_sensors();
+    sensor->set_id("");
+    sensor->set_quantity(quantity);
     return true;
   }
 
@@ -52,7 +52,7 @@ class SimpleSensorUniverse : public Universe {
  protected:
   virtual Measurement readSensor(const DeviceLocator& locator) const = 0;
 
-  virtual roo_transceivers_Quantity getSensorQuantity(
+  virtual roo_transceivers::Quantity getSensorQuantity(
       DeviceLocator device_locator) const = 0;
 };
 

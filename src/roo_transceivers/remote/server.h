@@ -16,7 +16,7 @@ class Executor {
 };
 
 struct DescriptorHashFn {
-  size_t operator()(const roo_transceivers_Descriptor& descriptor) const;
+  size_t operator()(const roo_transceivers::Descriptor& descriptor) const;
 };
 
 struct DescriptorEntry {
@@ -25,19 +25,20 @@ struct DescriptorEntry {
 };
 
 using DescriptorMap =
-    roo_collections::FlatSmallHashMap<roo_transceivers_Descriptor,
+    roo_collections::FlatSmallHashMap<roo_transceivers::Descriptor,
                                       DescriptorEntry, DescriptorHashFn>;
 
 class UniverseServerChannel {
  public:
   using ClientMessageCb =
-      std::function<void(const roo_transceivers_ClientMessage&)>;
+      std::function<void(const roo_transceivers::ClientMessage&)>;
 
   virtual ~UniverseServerChannel() = default;
 
   virtual void registerClientMessageCallback(ClientMessageCb cb) = 0;
 
-  virtual void sendServerMessage(const roo_transceivers_ServerMessage& msg) = 0;
+  virtual void sendServerMessage(
+      const roo_transceivers::ServerMessage& msg) = 0;
 };
 
 /// The server keeps cached universe state and the most recent delta.
@@ -84,16 +85,18 @@ class UniverseServer : public EventListener {
     size_t device_count() const { return devices_.size(); }
 
     void addDevice(const DeviceLocator& loc,
-                   const roo_transceivers_Descriptor& descriptor, int ordinal) {
+                   const roo_transceivers::Descriptor& descriptor,
+                   int ordinal) {
       newDeviceDelta(loc, DeviceDelta::ADDED, -1);
       int key = addDescriptorReference(descriptor);
       addDeviceEntry(loc, ordinal, key);
     }
 
     void removeReadings(const DeviceLocator& loc,
-                        const roo_transceivers_Descriptor& descriptor) {
-      for (size_t i = 0; i < descriptor.sensors_count; ++i) {
-        eraseSensorReading(SensorLocator(loc, descriptor.sensors[i].id));
+                        const roo_transceivers::Descriptor& descriptor) {
+      for (size_t i = 0; i < descriptor.sensors_size(); ++i) {
+        eraseSensorReading(
+            SensorLocator(loc, descriptor.sensors(i).id().c_str()));
       }
     }
 
@@ -102,14 +105,14 @@ class UniverseServer : public EventListener {
       int old_descriptor_key = device.descriptor_key;
       int old_ordinal = device.ordinal;
       newDeviceDelta(loc, State::DeviceDelta::REMOVED, old_ordinal);
-      const roo_transceivers_Descriptor& old_descriptor =
+      const roo_transceivers::Descriptor& old_descriptor =
           descriptors_by_key_[old_descriptor_key];
       removeReadings(loc, old_descriptor);
       removeDescriptorReference(old_descriptor);
       devices_.erase(loc);
     }
 
-    int addDescriptorReference(const roo_transceivers_Descriptor& descriptor);
+    int addDescriptorReference(const roo_transceivers::Descriptor& descriptor);
 
     void addDeviceEntry(const DeviceLocator& loc, int ordinal,
                         int descriptor_key) {
@@ -117,7 +120,7 @@ class UniverseServer : public EventListener {
     }
 
     void removeDescriptorReference(
-        const roo_transceivers_Descriptor& descriptor);
+        const roo_transceivers::Descriptor& descriptor);
 
     void eraseSensorReading(const SensorLocator& loc) { readings_.erase(loc); }
 
@@ -147,7 +150,7 @@ class UniverseServer : public EventListener {
       return true;
     }
 
-    const roo_transceivers_Descriptor& getDescriptor(
+    const roo_transceivers::Descriptor& getDescriptor(
         const DeviceLocator& loc) const {
       return descriptors_by_key_[devices_[loc].descriptor_key];
     }
@@ -209,7 +212,7 @@ class UniverseServer : public EventListener {
       return devices_;
     }
 
-    const roo_collections::FlatSmallHashMap<int, roo_transceivers_Descriptor>&
+    const roo_collections::FlatSmallHashMap<int, roo_transceivers::Descriptor>&
     descriptors_by_key() const {
       return descriptors_by_key_;
     }
@@ -233,7 +236,7 @@ class UniverseServer : public EventListener {
 
     DescriptorMap descriptors_;
 
-    roo_collections::FlatSmallHashMap<int, roo_transceivers_Descriptor>
+    roo_collections::FlatSmallHashMap<int, roo_transceivers::Descriptor>
         descriptors_by_key_;
 
     // Used as a hashtable key to identify device descriptors.
@@ -249,7 +252,7 @@ class UniverseServer : public EventListener {
     std::vector<SensorReadingDelta> reading_deltas_;
   };
 
-  void handleClientMessage(const roo_transceivers_ClientMessage& msg);
+  void handleClientMessage(const roo_transceivers::ClientMessage& msg);
 
   void handleRequestState();
 

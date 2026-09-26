@@ -40,7 +40,7 @@ class Universe {
   /// Returns `true` on success; `false` when the device is not found.
   virtual bool getDeviceDescriptor(
       const DeviceLocator& locator,
-      roo_transceivers_Descriptor& descriptor) const = 0;
+      roo_transceivers::Descriptor& descriptor) const = 0;
 
   /// Returns the latest known reading of the sensor identified by `locator`.
   ///

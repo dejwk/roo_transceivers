@@ -1,7 +1,5 @@
 syntax = "proto3";
 
-import "nanopb.proto";
-
 package roo_transceivers;
 
 enum Quantity {
@@ -72,17 +70,17 @@ enum Quantity {
 
 message Descriptor {
   message Sensor {
-    string id = 1 [ (nanopb).max_size = 24 ];
+    string id = 1;
     Quantity quantity = 2;
   }
 
   message Actuator {
-    string id = 1 [ (nanopb).max_size = 24 ];
+    string id = 1;
     Quantity quantity = 2;
   }
 
-  repeated Sensor sensors = 3 [ (nanopb).max_count = 16 ];
-  repeated Actuator actuators = 4 [ (nanopb).max_count = 16 ];
+  repeated Sensor sensors = 3;
+  repeated Actuator actuators = 4;
 }
 
 message ClientMessage {
@@ -91,9 +89,9 @@ message ClientMessage {
   message RequestState {}
 
   message Write {
-    string device_locator_schema = 1 [ (nanopb).max_size = 16 ];
-    string device_locator_id = 2 [ (nanopb).max_size = 24 ];
-    string device_locator_actuator_id = 3 [ (nanopb).max_size = 24 ];
+    string device_locator_schema = 1;
+    string device_locator_id = 2;
+    string device_locator_actuator_id = 3;
     float value = 4;
   }
 
@@ -121,8 +119,8 @@ message ServerMessage {
   message DescriptorRemoved { uint32 key = 1; }
 
   message DeviceAdded {
-    string locator_schema = 1 [ (nanopb).max_size = 16 ];
-    string locator_id = 2 [ (nanopb).max_size = 24 ];
+    string locator_schema = 1;
+    string locator_id = 2;
     uint32 descriptor_key = 3;
   }
 
@@ -145,16 +143,16 @@ message ServerMessage {
   message ReadingsEnd {}
 
   message Reading {
-    string device_locator_schema = 1 [ (nanopb).max_size = 16 ];
-    string device_locator_id = 2 [ (nanopb).max_size = 24 ];
+    string device_locator_schema = 1;
+    string device_locator_id = 2;
 
     message SensorValue {
-      string device_locator_sensor_id = 1 [ (nanopb).max_size = 24 ];
+      string device_locator_sensor_id = 1;
       float value = 2;
       uint64 age_ms = 3;
     }
 
-    repeated SensorValue sensor_values = 3 [ (nanopb).max_count = 16 ];
+    repeated SensorValue sensor_values = 3;
   }
 
   oneof contents {

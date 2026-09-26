@@ -12,26 +12,20 @@
 namespace roo_transceivers {
 
 size_t DescriptorHashFn::operator()(
-    const roo_transceivers_Descriptor& descriptor) const {
+    const roo_transceivers::Descriptor& descriptor) const {
   size_t hash = 0;
-  hash = roo_collections::murmur3_32(&descriptor.sensors_count,
-                                     sizeof(descriptor.sensors_count), hash);
-  hash = roo_collections::murmur3_32(&descriptor.actuators_count,
-                                     sizeof(descriptor.actuators_count), hash);
-  for (size_t i = 0; i < descriptor.sensors_count; ++i) {
-    hash = roo_collections::murmur3_32(descriptor.sensors[i].id,
-                                       strlen(descriptor.sensors[i].id), hash);
-    hash = roo_collections::murmur3_32(&descriptor.sensors[i].quantity,
-                                       sizeof(descriptor.sensors[i].quantity),
-                                       hash);
-  }
-  for (size_t i = 0; i < descriptor.actuators_count; ++i) {
-    hash = roo_collections::murmur3_32(
-        descriptor.actuators[i].id, strlen(descriptor.actuators[i].id), hash);
-    hash = roo_collections::murmur3_32(&descriptor.actuators[i].quantity,
-                                       sizeof(descriptor.actuators[i].quantity),
-                                       hash);
-  }
+  auto hash_entries = [&hash](const auto& entries) {
+    const size_t count = entries.size();
+    hash = roo_collections::murmur3_32(&count, sizeof(count), hash);
+    for (const auto& entry : entries) {
+      hash = roo_collections::murmur3_32(entry.id().data(), entry.id().size(),
+                                         hash);
+      const auto quantity = entry.quantity();
+      hash = roo_collections::murmur3_32(&quantity, sizeof(quantity), hash);
+    }
+  };
+  hash_entries(descriptor.sensors());
+  hash_entries(descriptor.actuators());
   return hash;
 }
 
@@ -49,7 +43,7 @@ UniverseServer::UniverseServer(Universe& universe,
       readings_pending_(false),
       devices_changed_(false) {
   channel.registerClientMessageCallback(
-      [this](const roo_transceivers_ClientMessage& msg) {
+      [this](const roo_transceivers::ClientMessage& msg) {
         handleClientMessage(msg);
       });
   universe_.addEventListener(this);
@@ -97,28 +91,31 @@ void UniverseServer::newReadingsAvailable() {
 }
 
 void UniverseServer::handleClientMessage(
-    const roo_transceivers_ClientMessage& msg) {
-  switch (msg.which_contents) {
-    case roo_transceivers_ClientMessage_request_update_tag: {
+    const roo_transceivers::ClientMessage& msg) {
+  switch (msg.contents_case()) {
+    case roo_transceivers::ClientMessage::ContentsCase::kRequestUpdate: {
       MLOG(roo_transceivers_remote_server) << "Received request update";
       universe_.requestUpdate();
       break;
     }
-    case roo_transceivers_ClientMessage_request_state_tag: {
+    case roo_transceivers::ClientMessage::ContentsCase::kRequestState: {
       handleRequestState();
       break;
     }
-    case roo_transceivers_ClientMessage_write_tag: {
-      const auto& req = msg.contents.write;
-      ActuatorLocator loc(req.device_locator_schema, req.device_locator_id,
-                          req.device_locator_actuator_id);
+    case roo_transceivers::ClientMessage::ContentsCase::kWrite: {
+      const auto& req = msg.write();
+      ActuatorLocator loc(req.device_locator_schema().c_str(),
+                          req.device_locator_id().c_str(),
+                          req.device_locator_actuator_id().c_str());
       MLOG(roo_transceivers_remote_server)
-          << "Received write request for " << loc << " with val " << req.value;
-      universe_.write(loc, req.value);
+          << "Received write request for " << loc << " with val "
+          << req.value();
+      universe_.write(loc, req.value());
       break;
     }
     default: {
-      LOG(ERROR) << "Unexpected client message type " << msg.which_contents;
+      LOG(ERROR) << "Unexpected client message type "
+                 << static_cast<uint32_t>(msg.contents_case());
     }
   }
 }
@@ -174,7 +171,7 @@ void UniverseServer::State::newSensorReadingDelta(const SensorLocator& loc,
 
 void UniverseServer::snapshotDevices() {
   devices_changed_ = false;
-  roo_transceivers_Descriptor descriptor;
+  roo_transceivers::Descriptor descriptor;
   roo_collections::FlatSmallHashSet<DeviceLocator> removed(
       state_.device_count());
   for (const auto& itr : state_.devices()) {
@@ -195,7 +192,7 @@ void UniverseServer::snapshotDevices() {
       // Device exists.
       removed.erase(loc);
       int old_descriptor_key = existing->second.descriptor_key;
-      const roo_transceivers_Descriptor& old_descriptor =
+      const roo_transceivers::Descriptor& old_descriptor =
           state_.descriptors_by_key()[old_descriptor_key];
       // Check if the descriptor changed.
       if (old_descriptor == descriptor) {
@@ -231,10 +228,11 @@ void UniverseServer::snapshotSensorState(bool new_only) {
   for (const auto& dev : state_.device_deltas()) {
     if (dev.status == State::DeviceDelta::REMOVED) continue;
     if (new_only && dev.status != State::DeviceDelta::ADDED) continue;
-    const roo_transceivers_Descriptor& descriptor =
+    const roo_transceivers::Descriptor& descriptor =
         state_.getDescriptor(dev.locator);
-    for (size_t i = 0; i < descriptor.sensors_count; i++) {
-      SensorLocator sensor_locator(dev.locator, descriptor.sensors[i].id);
+    for (size_t i = 0; i < descriptor.sensors_size(); i++) {
+      SensorLocator sensor_locator(dev.locator,
+                                   descriptor.sensors(i).id().c_str());
       Measurement measurement = universe_.read(sensor_locator);
       if (state_.updateSensorReading(sensor_locator, measurement)) {
         state_.newSensorReadingDelta(sensor_locator, measurement.value(),
@@ -246,7 +244,7 @@ void UniverseServer::snapshotSensorState(bool new_only) {
 }
 
 int UniverseServer::State::addDescriptorReference(
-    const roo_transceivers_Descriptor& descriptor) {
+    const roo_transceivers::Descriptor& descriptor) {
   int key;
   bool is_new = false;
   auto itr = descriptors_.find(descriptor);
@@ -267,7 +265,7 @@ int UniverseServer::State::addDescriptorReference(
 }
 
 void UniverseServer::State::removeDescriptorReference(
-    const roo_transceivers_Descriptor& descriptor) {
+    const roo_transceivers::Descriptor& descriptor) {
   auto itr = descriptors_.find(descriptor);
   if (itr == descriptors_.end()) {
     LOG(ERROR) << "Descriptor not found when trying to remove reference";
@@ -305,7 +303,7 @@ void UniverseServer::transmitUpdateEnd() {
 
 void UniverseServer::transmitDescriptorAdded(int key) {
   MLOG(roo_transceivers_remote_server) << "Transmitting Descriptor added";
-  const roo_transceivers_Descriptor& descriptor =
+  const roo_transceivers::Descriptor& descriptor =
       state_.descriptors_by_key()[key];
   channel_.sendServerMessage(proto::SrvDescriptorAdded(key, descriptor));
 }
@@ -471,7 +469,7 @@ void UniverseServer::transmit(bool is_delta) {
     size_t reading_offset = 0;
     roo_time::Uptime now = roo_time::Uptime::Now();
     for (const auto& group : state_.reading_delta_groups()) {
-      roo_transceivers_ServerMessage msg = proto::SrvReading(group.device);
+      roo_transceivers::ServerMessage msg = proto::SrvReading(group.device);
       for (size_t i = 0; i < group.reading_count; ++i) {
         auto& reading = state_.reading_deltas()[reading_offset];
         proto::AddReading(msg, reading.sensor_id, reading.value,

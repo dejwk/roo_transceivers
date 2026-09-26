@@ -7,18 +7,15 @@
 namespace roo_transceivers {
 
 // Dummy implementations for required types.
-struct DummyDescriptor : public roo_transceivers_Descriptor {
-  DummyDescriptor() {
-    sensors_count = 0;
-    actuators_count = 0;
-  }
+struct DummyDescriptor : public roo_transceivers::Descriptor {
+  DummyDescriptor() = default;
 };
 
 class DummyTransceiver : public Transceiver {
  public:
   DummyTransceiver(int id) {}
 
-  void getDescriptor(roo_transceivers_Descriptor& descriptor) const override {
+  void getDescriptor(roo_transceivers::Descriptor& descriptor) const override {
     descriptor = DummyDescriptor();
   }
   Measurement read(const SensorId&) const override { return Measurement(); }
@@ -85,7 +82,7 @@ TEST(TransceiverCollectionTest, GetDeviceDescriptor) {
   DummyTransceiver t1(1);
   DeviceLocator l1("schema", "dev1");
   collection.add(l1, &t1);
-  roo_transceivers_Descriptor desc;
+  roo_transceivers::Descriptor desc;
   ASSERT_TRUE(collection.getDeviceDescriptor(l1, desc));
   DeviceLocator l2("schema", "dev2");
   EXPECT_FALSE(collection.getDeviceDescriptor(l2, desc));
@@ -97,7 +94,7 @@ TEST(TransceiverCollectionTest, ReadAndWriteDelegation) {
     RWTransceiver() : DummyTransceiver(0) {}
     Measurement read(const SensorId& id) const override {
       if (id == "sensor") {
-        return Measurement(roo_transceivers_Quantity_kTemperature,
+        return Measurement(roo_transceivers::Quantity::kTemperature,
                            roo_time::Uptime::Now(), 42.0f);
       }
       return Measurement();
@@ -106,7 +103,8 @@ TEST(TransceiverCollectionTest, ReadAndWriteDelegation) {
       if (id == "act" && value == 123.0f) return true;
       return false;
     }
-    void getDescriptor(roo_transceivers_Descriptor& descriptor) const override {
+    void getDescriptor(
+        roo_transceivers::Descriptor& descriptor) const override {
       descriptor = DummyDescriptor();
     }
     void addEventListener(EventListener*) override {}
@@ -182,7 +180,7 @@ TEST(TransceiverCollectionTest, ConstructorWithVector) {
   std::vector<TransceiverCollection::Entry> entries = {{l1, &t1}, {l2, &t2}};
   TransceiverCollection collection(entries);
   EXPECT_EQ(collection.deviceCount(), 2u);
-  roo_transceivers_Descriptor desc;
+  roo_transceivers::Descriptor desc;
   EXPECT_TRUE(collection.getDeviceDescriptor(l1, desc));
   EXPECT_TRUE(collection.getDeviceDescriptor(l2, desc));
 }
@@ -204,7 +202,7 @@ TEST(TransceiverCollectionTest, RemoveTransceiver) {
   EXPECT_EQ(collection.deviceCount(), 1u);
 
   // Ensure l1 is no longer present.
-  roo_transceivers_Descriptor desc;
+  roo_transceivers::Descriptor desc;
   EXPECT_FALSE(collection.getDeviceDescriptor(l1, desc));
 
   // Remove second device.
@@ -228,7 +226,7 @@ TEST(TransceiverCollectionTest, RemoveDoesNotAffectOtherDevices) {
 
   // Remove l1, l2 should still be accessible.
   EXPECT_TRUE(collection.remove(l1));
-  roo_transceivers_Descriptor desc;
+  roo_transceivers::Descriptor desc;
   EXPECT_TRUE(collection.getDeviceDescriptor(l2, desc));
 }
 

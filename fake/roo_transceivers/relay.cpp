@@ -5,27 +5,21 @@
 #include "roo_time.h"
 #include "roo_transceivers/universe.h"
 
-roo_transceivers_Descriptor* getFakeRooRelay4pDescriptor() {
-  static roo_transceivers_Descriptor descriptor = {
-      .sensors_count = 4,
-      .sensors =
-          {
-              {.id = "relay1",
-               .quantity = roo_transceivers_Quantity_kBinaryState},
-              {.id = "relay2",
-               .quantity = roo_transceivers_Quantity_kBinaryState},
-              {.id = "relay3",
-               .quantity = roo_transceivers_Quantity_kBinaryState},
-              {.id = "relay4",
-               .quantity = roo_transceivers_Quantity_kBinaryState},
-          },
-      .actuators_count = 4,
-      .actuators = {
-          {.id = "relay1", .quantity = roo_transceivers_Quantity_kBinaryState},
-          {.id = "relay2", .quantity = roo_transceivers_Quantity_kBinaryState},
-          {.id = "relay3", .quantity = roo_transceivers_Quantity_kBinaryState},
-          {.id = "relay4", .quantity = roo_transceivers_Quantity_kBinaryState},
-      }};
+roo_transceivers::Descriptor* getFakeRooRelay4pDescriptor() {
+  static roo_transceivers::Descriptor descriptor = [] {
+    roo_transceivers::Descriptor result;
+    for (const char* id : {"relay1", "relay2", "relay3", "relay4"}) {
+      auto* entry = result.add_sensors();
+      entry->set_id(id);
+      entry->set_quantity(roo_transceivers::Quantity::kBinaryState);
+    }
+    for (const char* id : {"relay1", "relay2", "relay3", "relay4"}) {
+      auto* entry = result.add_actuators();
+      entry->set_id(id);
+      entry->set_quantity(roo_transceivers::Quantity::kBinaryState);
+    }
+    return result;
+  }();
   return &descriptor;
 }
 
@@ -40,7 +34,7 @@ roo_time::Uptime rounded_now() {
 roo_transceivers::Measurement measurement(
     roo_testing_transducers::DigitalLevel level) {
   return roo_transceivers::Measurement(
-      roo_transceivers_Quantity_kBinaryState, rounded_now(),
+      roo_transceivers::Quantity::kBinaryState, rounded_now(),
       level == roo_testing_transducers::kDigitalHigh ? 1.0f : 0.0f);
 }
 

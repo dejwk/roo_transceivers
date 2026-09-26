@@ -32,7 +32,7 @@ class Multiverse : public Universe, public EventListener {
 
   bool getDeviceDescriptor(
       const DeviceLocator& locator,
-      roo_transceivers_Descriptor& descriptor) const override {
+      roo_transceivers::Descriptor& descriptor) const override {
     for (const auto& universe : universes_) {
       if (universe->getDeviceDescriptor(locator, descriptor)) return true;
     }
@@ -42,7 +42,7 @@ class Multiverse : public Universe, public EventListener {
   Measurement read(const SensorLocator& locator) const override {
     for (const auto& universe : universes_) {
       Measurement m = universe->read(locator);
-      if (m.quantity() != roo_transceivers_Quantity_kUnspecifiedQuantity) {
+      if (m.quantity() != roo_transceivers::Quantity::kUnspecifiedQuantity) {
         return m;
       }
     }

@@ -11,7 +11,7 @@ namespace roo_transceivers {
 class Measurement {
  public:
   Measurement()
-      : quantity_(roo_transceivers_Quantity_kUnspecifiedQuantity),
+      : quantity_(roo_transceivers::Quantity::kUnspecifiedQuantity),
         time_micros_(0),
         value_(nanf("")) {}
 
@@ -20,11 +20,11 @@ class Measurement {
 
   /// Returns true if quantity and value are defined.
   bool isDefined() const {
-    return (quantity_ != roo_transceivers_Quantity_kUnspecifiedQuantity &&
+    return (quantity_ != roo_transceivers::Quantity::kUnspecifiedQuantity &&
             !isnanf(value_));
   }
 
-  Measurement(roo_transceivers_Quantity quantity, roo_time::Uptime time,
+  Measurement(roo_transceivers::Quantity quantity, roo_time::Uptime time,
               float value = nanf(""))
       : quantity_(quantity),
         time_micros_(time.inMicros() < (1LL << 52) ? time.inMicros()
@@ -32,7 +32,7 @@ class Measurement {
         value_(value) {}
 
   /// Returns the quantity type.
-  roo_transceivers_Quantity quantity() const { return quantity_; }
+  roo_transceivers::Quantity quantity() const { return quantity_; }
 
   /// Returns the measurement timestamp.
   roo_time::Uptime time() const {
@@ -47,7 +47,7 @@ class Measurement {
 
  private:
   struct {
-    roo_transceivers_Quantity quantity_ : 12;
+    roo_transceivers::Quantity quantity_ : 12;
     uint64_t time_micros_ : 52;
   };
   float value_;

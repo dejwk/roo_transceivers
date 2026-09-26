@@ -19,13 +19,14 @@ namespace roo_transceivers {
 class UniverseClientChannel {
  public:
   using ServerMessageCb =
-      std::function<void(const roo_transceivers_ServerMessage&)>;
+      std::function<void(const roo_transceivers::ServerMessage&)>;
 
   virtual ~UniverseClientChannel() = default;
 
   virtual void registerServerMessageCallback(ServerMessageCb cb) = 0;
 
-  virtual void sendClientMessage(const roo_transceivers_ClientMessage& msg) = 0;
+  virtual void sendClientMessage(
+      const roo_transceivers::ClientMessage& msg) = 0;
 };
 
 /// Universe that mirrors a remote universe via a bidirectional channel.
@@ -49,7 +50,7 @@ class UniverseClient : public Universe {
 
   bool getDeviceDescriptor(
       const DeviceLocator& locator,
-      roo_transceivers_Descriptor& descriptor) const override;
+      roo_transceivers::Descriptor& descriptor) const override;
 
   Measurement read(const SensorLocator& locator) const override;
 
@@ -64,18 +65,18 @@ class UniverseClient : public Universe {
  private:
   // Convenience function to lookup a descriptor by device locator. Additionally
   // returns the descriptor key, assigned by the server.
-  const roo_transceivers_Descriptor* lookupDeviceDescriptor(
+  const roo_transceivers::Descriptor* lookupDeviceDescriptor(
       const DeviceLocator& locator, int& descriptor_key) const;
 
   // Called when a message is received from the server. Returns true on success;
   // false on protocol error. If returns false, the client will attempt to
   // recover by issuing RequestState.
-  bool handleServerMessage(const roo_transceivers_ServerMessage& msg);
+  bool handleServerMessage(const roo_transceivers::ServerMessage& msg);
 
   bool handleInit();
 
   bool handleDescriptorAdded(int key,
-                             const roo_transceivers_Descriptor& descriptor);
+                             const roo_transceivers::Descriptor& descriptor);
 
   bool handleDescriptorRemoved(int key);
 
@@ -105,7 +106,7 @@ class UniverseClient : public Universe {
 
   bool handleReadings(
       const DeviceLocator& device,
-      const roo_transceivers_ServerMessage_Reading_SensorValue* readings,
+      const roo_transceivers::ServerMessage::Reading::SensorValue* readings,
       size_t readings_count);
 
   bool handleReadingsEnd();
@@ -117,7 +118,7 @@ class UniverseClient : public Universe {
   // Stores all descriptors for devices handled by the remote universe. The
   // descriptors are assigned integer keys by the remote universe. These are
   // used as keys into this map.
-  roo_collections::FlatSmallHashMap<int, roo_transceivers_Descriptor>
+  roo_collections::FlatSmallHashMap<int, roo_transceivers::Descriptor>
       descriptors_;
 
   // For each device known to the remote universe, points to the key of

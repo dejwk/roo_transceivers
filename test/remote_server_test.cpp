@@ -6,81 +6,83 @@
 #include "roo_transceivers/remote/proto.h"
 #include "roo_transceivers/remote/server.h"
 
-void PrintTo(const roo_transceivers_ServerMessage& msg, std::ostream* os) {
+void PrintTo(const roo_transceivers::ServerMessage& msg, std::ostream* os) {
   (*os) << "\n{\n";
-  switch (msg.which_contents) {
-    case roo_transceivers_ServerMessage_init_tag: {
+  switch (msg.contents_case()) {
+    case roo_transceivers::ServerMessage::ContentsCase::kInit: {
       (*os) << "  Init{}\n";
       break;
     }
-    case roo_transceivers_ServerMessage_transceiver_update_begin_tag: {
+    case roo_transceivers::ServerMessage::ContentsCase::
+        kTransceiverUpdateBegin: {
       (*os) << "  UpdateBegin { delta = "
-            << msg.contents.transceiver_update_begin.delta << " }\n";
+            << msg.transceiver_update_begin().delta() << " }\n";
       break;
     }
-    case roo_transceivers_ServerMessage_descriptor_added_tag: {
-      (*os) << "  DescriptorAdded { key = " << msg.contents.descriptor_added.key
+    case roo_transceivers::ServerMessage::ContentsCase::kDescriptorAdded: {
+      (*os) << "  DescriptorAdded { key = " << msg.descriptor_added().key()
             << " }\n";
       break;
     }
-    case roo_transceivers_ServerMessage_descriptor_removed_tag: {
-      (*os) << "  DescriptorAdded { key = "
-            << msg.contents.descriptor_removed.key << " }\n";
+    case roo_transceivers::ServerMessage::ContentsCase::kDescriptorRemoved: {
+      (*os) << "  DescriptorAdded { key = " << msg.descriptor_removed().key()
+            << " }\n";
       break;
     }
-    case roo_transceivers_ServerMessage_device_added_tag: {
+    case roo_transceivers::ServerMessage::ContentsCase::kDeviceAdded: {
       (*os) << "  DeviceAdded { locator = "
             << roo_transceivers::DeviceLocator(
-                   msg.contents.device_added.locator_schema,
-                   msg.contents.device_added.locator_id)
+                   msg.device_added().locator_schema().c_str(),
+                   msg.device_added().locator_id().c_str())
                    .toString()
-            << ", descriptor_key: " << msg.contents.device_added.descriptor_key
+            << ", descriptor_key: " << msg.device_added().descriptor_key()
             << " }\n";
       break;
     }
-    case roo_transceivers_ServerMessage_device_removed_tag: {
+    case roo_transceivers::ServerMessage::ContentsCase::kDeviceRemoved: {
       (*os) << "  DeviceRemoved { prev_index = "
-            << msg.contents.device_removed.prev_index << " }\n";
+            << msg.device_removed().prev_index() << " }\n";
       break;
     }
-    case roo_transceivers_ServerMessage_device_preserved_tag: {
+    case roo_transceivers::ServerMessage::ContentsCase::kDevicePreserved: {
       (*os) << "  DevicePreserved { prev_index = "
-            << msg.contents.device_preserved.prev_index
-            << ", count = " << msg.contents.device_preserved.count << " }\n";
+            << msg.device_preserved().prev_index()
+            << ", count = " << msg.device_preserved().count() << " }\n";
       break;
     }
-    case roo_transceivers_ServerMessage_device_modified_tag: {
+    case roo_transceivers::ServerMessage::ContentsCase::kDeviceModified: {
       (*os) << "  DeviceModified { prev_index = "
-            << msg.contents.device_modified.prev_index << ", descriptor_key = "
-            << msg.contents.device_modified.descriptor_key << " }\n";
+            << msg.device_modified().prev_index()
+            << ", descriptor_key = " << msg.device_modified().descriptor_key()
+            << " }\n";
       break;
     }
-    case roo_transceivers_ServerMessage_transceiver_update_end_tag: {
+    case roo_transceivers::ServerMessage::ContentsCase::kTransceiverUpdateEnd: {
       (*os) << "  UpdateEnd{}\n";
       break;
     }
-    case roo_transceivers_ServerMessage_readings_begin_tag: {
+    case roo_transceivers::ServerMessage::ContentsCase::kReadingsBegin: {
       (*os) << "  ReadingsBegin{}\n";
       break;
     }
-    case roo_transceivers_ServerMessage_readings_end_tag: {
+    case roo_transceivers::ServerMessage::ContentsCase::kReadingsEnd: {
       (*os) << "  ReadingsEnd{}\n";
       break;
     }
-    case roo_transceivers_ServerMessage_reading_tag: {
+    case roo_transceivers::ServerMessage::ContentsCase::kReading: {
       (*os) << "  Reading { device = "
             << roo_transceivers::DeviceLocator(
-                   msg.contents.reading.device_locator_schema,
-                   msg.contents.reading.device_locator_id)
+                   msg.reading().device_locator_schema().c_str(),
+                   msg.reading().device_locator_id().c_str())
                    .toString()
             << ", sensors: [";
-      for (size_t i = 0; i < msg.contents.reading.sensor_values_count; ++i) {
-        auto& reading = msg.contents.reading.sensor_values[i];
+      for (size_t i = 0; i < msg.reading().sensor_values_size(); ++i) {
+        auto& reading = msg.reading().sensor_values(i);
         if (i > 0) {
           (*os) << ", ";
         }
-        (*os) << "(\"" << reading.device_locator_sensor_id
-              << "\" : " << reading.value << ")";
+        (*os) << "(\"" << reading.device_locator_sensor_id().c_str()
+              << "\" : " << reading.value() << ")";
       }
       (*os) << "] }\n";
       break;
@@ -106,7 +108,7 @@ using testing::Sequence;
 class FakeThermometer : public SimpleSensor {
  public:
   FakeThermometer()
-      : SimpleSensor(roo_transceivers_Quantity_kTemperature),
+      : SimpleSensor(roo_transceivers::Quantity::kTemperature),
         temperature_deg_c_(std::nan("")) {}
 
   void set(float temp_c) { temperature_deg_c_ = temp_c; }
@@ -125,7 +127,7 @@ class MockChannel : public UniverseServerChannel {
   MOCK_METHOD1(registerClientMessageCallback, void(ClientMessageCb cb));
 
   MOCK_METHOD1(sendServerMessage,
-               void(const roo_transceivers_ServerMessage& msg));
+               void(const roo_transceivers::ServerMessage& msg));
 };
 
 class DirectExecutor : public Executor {
@@ -175,67 +177,71 @@ class OrderedTransceiverCollection : public TransceiverCollection {
 };
 
 MATCHER_P(MsgEq, msg, "") {
-  if (arg.which_contents != msg.which_contents) return false;
-  switch (arg.which_contents) {
-    case roo_transceivers_ServerMessage_transceiver_update_begin_tag: {
-      return arg.contents.transceiver_update_begin.delta ==
-             msg.contents.transceiver_update_begin.delta;
+  if (arg.contents_case() != msg.contents_case()) return false;
+  switch (arg.contents_case()) {
+    case roo_transceivers::ServerMessage::ContentsCase::
+        kTransceiverUpdateBegin: {
+      return arg.transceiver_update_begin().delta() ==
+             msg.transceiver_update_begin().delta();
     }
-    case roo_transceivers_ServerMessage_descriptor_added_tag: {
-      const auto& a = arg.contents.descriptor_added;
-      const auto& b = msg.contents.descriptor_added;
-      return a.key == b.key && a.descriptor == b.descriptor;
+    case roo_transceivers::ServerMessage::ContentsCase::kDescriptorAdded: {
+      const auto& a = arg.descriptor_added();
+      const auto& b = msg.descriptor_added();
+      return a.key() == b.key() && a.descriptor() == b.descriptor();
     }
-    case roo_transceivers_ServerMessage_descriptor_removed_tag: {
-      const auto& a = arg.contents.descriptor_removed;
-      const auto& b = msg.contents.descriptor_removed;
-      return a.key == b.key;
+    case roo_transceivers::ServerMessage::ContentsCase::kDescriptorRemoved: {
+      const auto& a = arg.descriptor_removed();
+      const auto& b = msg.descriptor_removed();
+      return a.key() == b.key();
     }
-    case roo_transceivers_ServerMessage_device_added_tag: {
-      const auto& a = arg.contents.device_added;
-      const auto& b = msg.contents.device_added;
-      return strncmp(a.locator_schema, b.locator_schema,
+    case roo_transceivers::ServerMessage::ContentsCase::kDeviceAdded: {
+      const auto& a = arg.device_added();
+      const auto& b = msg.device_added();
+      return strncmp(a.locator_schema().c_str(), b.locator_schema().c_str(),
                      DeviceSchema::kCapacity) == 0 &&
-             strncmp(a.locator_id, b.locator_id, DeviceId::kCapacity) == 0 &&
-             a.descriptor_key == b.descriptor_key;
+             strncmp(a.locator_id().c_str(), b.locator_id().c_str(),
+                     DeviceId::kCapacity) == 0 &&
+             a.descriptor_key() == b.descriptor_key();
     }
-    case roo_transceivers_ServerMessage_device_removed_tag: {
-      const auto& a = arg.contents.device_removed;
-      const auto& b = msg.contents.device_removed;
-      return a.prev_index == b.prev_index;
+    case roo_transceivers::ServerMessage::ContentsCase::kDeviceRemoved: {
+      const auto& a = arg.device_removed();
+      const auto& b = msg.device_removed();
+      return a.prev_index() == b.prev_index();
     }
-    case roo_transceivers_ServerMessage_device_preserved_tag: {
-      const auto& a = arg.contents.device_preserved;
-      const auto& b = msg.contents.device_preserved;
-      return a.prev_index == b.prev_index && a.count == b.count;
+    case roo_transceivers::ServerMessage::ContentsCase::kDevicePreserved: {
+      const auto& a = arg.device_preserved();
+      const auto& b = msg.device_preserved();
+      return a.prev_index() == b.prev_index() &&
+             a.has_count() == b.has_count() && a.count() == b.count();
     }
-    case roo_transceivers_ServerMessage_device_modified_tag: {
-      const auto& a = arg.contents.device_modified;
-      const auto& b = msg.contents.device_modified;
-      return a.prev_index == b.prev_index &&
-             a.descriptor_key == b.descriptor_key;
+    case roo_transceivers::ServerMessage::ContentsCase::kDeviceModified: {
+      const auto& a = arg.device_modified();
+      const auto& b = msg.device_modified();
+      return a.prev_index() == b.prev_index() &&
+             a.descriptor_key() == b.descriptor_key();
     }
-    case roo_transceivers_ServerMessage_reading_tag: {
-      const auto& a = arg.contents.reading;
-      const auto& b = msg.contents.reading;
-      if (strncmp(a.device_locator_schema, b.device_locator_schema,
+    case roo_transceivers::ServerMessage::ContentsCase::kReading: {
+      const auto& a = arg.reading();
+      const auto& b = msg.reading();
+      if (strncmp(a.device_locator_schema().c_str(),
+                  b.device_locator_schema().c_str(),
                   DeviceSchema::kCapacity) != 0) {
         return false;
       }
-      if (strncmp(a.device_locator_id, b.device_locator_id,
+      if (strncmp(a.device_locator_id().c_str(), b.device_locator_id().c_str(),
                   DeviceId::kCapacity) != 0) {
         return false;
       }
-      if (a.sensor_values_count != b.sensor_values_count) return false;
-      for (size_t i = 0; i < a.sensor_values_count; ++i) {
-        if (strncmp(a.sensor_values[i].device_locator_sensor_id,
-                    a.sensor_values[i].device_locator_sensor_id,
+      if (a.sensor_values_size() != b.sensor_values_size()) return false;
+      for (size_t i = 0; i < a.sensor_values_size(); ++i) {
+        if (strncmp(a.sensor_values(i).device_locator_sensor_id().c_str(),
+                    b.sensor_values(i).device_locator_sensor_id().c_str(),
                     SensorId::kCapacity) != 0) {
           return false;
         }
-        if (!(isnan(a.sensor_values[i].value) &&
-              isnan(b.sensor_values[i].value)) &&
-            a.sensor_values[i].value != b.sensor_values[i].value) {
+        if (!(isnan(a.sensor_values(i).value()) &&
+              isnan(b.sensor_values(i).value())) &&
+            a.sensor_values(i).value() != b.sensor_values(i).value()) {
           return false;
         }
       }
@@ -274,7 +280,7 @@ TEST(ServerTest, SendInitAndDevicesUpdated) {
   TransceiverCollection universe({{loc, &t1}});
   DirectExecutor executor;
   MockChannel channel;
-  roo_transceivers_Descriptor descriptor;
+  roo_transceivers::Descriptor descriptor;
   t1.getDescriptor(descriptor);
   {
     InSequence s;
@@ -302,7 +308,7 @@ TEST(ServerTest, SendInitAndRespondToClientGetFullShapshot) {
   TransceiverCollection universe({{loc, &t1}});
   DirectExecutor executor;
   MockChannel channel;
-  roo_transceivers_Descriptor descriptor;
+  roo_transceivers::Descriptor descriptor;
   t1.getDescriptor(descriptor);
   UniverseServerChannel::ClientMessageCb client;
   {
@@ -333,7 +339,7 @@ TEST(ServerTest,
   TransceiverCollection universe({{loc, &t1}});
   DirectExecutor executor;
   MockChannel channel;
-  roo_transceivers_Descriptor descriptor;
+  roo_transceivers::Descriptor descriptor;
   t1.getDescriptor(descriptor);
   UniverseServerChannel::ClientMessageCb client;
   {
@@ -357,7 +363,7 @@ TEST(ServerTest, SingleDeviceDisappearing) {
   TransceiverCollection universe({{loc, &t1}});
   DirectExecutor executor;
   MockChannel channel;
-  roo_transceivers_Descriptor descriptor;
+  roo_transceivers::Descriptor descriptor;
   t1.getDescriptor(descriptor);
   UniverseServerChannel::ClientMessageCb client;
   {
@@ -387,7 +393,7 @@ TEST(ServerTest, SingleDeviceDisappearingAndReappearing) {
   TransceiverCollection universe({{loc, &t1}});
   DirectExecutor executor;
   MockChannel channel;
-  roo_transceivers_Descriptor descriptor;
+  roo_transceivers::Descriptor descriptor;
   t1.getDescriptor(descriptor);
   UniverseServerChannel::ClientMessageCb client;
   {
@@ -431,7 +437,7 @@ TEST(ServerTest, ThreeDevicesBackAndForth) {
       {{loc1, &t1}, {loc2, &t2}, {loc3, &t3}});
   DirectExecutor executor;
   MockChannel channel;
-  roo_transceivers_Descriptor descriptor;
+  roo_transceivers::Descriptor descriptor;
   t1.getDescriptor(descriptor);
   UniverseServerChannel::ClientMessageCb client;
   std::vector<int> removed_prev_indices;
@@ -467,10 +473,11 @@ TEST(ServerTest, ThreeDevicesBackAndForth) {
     EXPECT_SRV_MSG(channel, proto::SrvDevicesPreserved(2, 1));
     EXPECT_CALL(channel, sendServerMessage(_))
         .Times(2)
-        .WillRepeatedly([&](const roo_transceivers_ServerMessage& msg) {
-          ASSERT_EQ(msg.which_contents,
-                    roo_transceivers_ServerMessage_device_removed_tag);
-          removed_prev_indices.push_back(msg.contents.device_removed.prev_index);
+        .WillRepeatedly([&](const roo_transceivers::ServerMessage& msg) {
+          ASSERT_EQ(
+              msg.contents_case(),
+              roo_transceivers::ServerMessage::ContentsCase::kDeviceRemoved);
+          removed_prev_indices.push_back(msg.device_removed().prev_index());
         });
     EXPECT_SRV_MSG(channel, proto::SrvUpdateEnd());
 

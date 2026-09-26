@@ -11,13 +11,15 @@
 class FakeTransceiver {
  public:
   FakeTransceiver(roo_transceivers::DeviceLocator locator,
-                  const roo_transceivers_Descriptor* descriptor)
+                  const roo_transceivers::Descriptor* descriptor)
       : locator_(locator), descriptor_(descriptor) {}
 
   virtual ~FakeTransceiver() = default;
 
   const roo_transceivers::DeviceLocator& locator() const { return locator_; }
-  const roo_transceivers_Descriptor& descriptor() const { return *descriptor_; }
+  const roo_transceivers::Descriptor& descriptor() const {
+    return *descriptor_;
+  }
 
   virtual roo_transceivers::Measurement read(
       std::string_view sensor_id) const = 0;
@@ -27,7 +29,7 @@ class FakeTransceiver {
 
  private:
   roo_transceivers::DeviceLocator locator_;
-  const roo_transceivers_Descriptor* descriptor_;
+  const roo_transceivers::Descriptor* descriptor_;
 };
 
 class FakeTransceiverUniverse : public roo_transceivers::Universe {
@@ -50,7 +52,7 @@ class FakeTransceiverUniverse : public roo_transceivers::Universe {
 
   bool getDeviceDescriptor(
       const roo_transceivers::DeviceLocator& locator,
-      roo_transceivers_Descriptor& descriptor) const override {
+      roo_transceivers::Descriptor& descriptor) const override {
     const FakeTransceiver* transceiver = findTransceiver(locator);
     if (transceiver == nullptr) return false;
     descriptor = transceiver->descriptor();

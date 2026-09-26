@@ -5,16 +5,16 @@
 #include "roo_time.h"
 #include "roo_transceivers/universe.h"
 
-const roo_transceivers_Descriptor* getFakeEnvironmentalSensorDescriptor() {
-  static roo_transceivers_Descriptor descriptor = {
-      .sensors_count = 1,
-      .sensors =
-          {
-              {.id = "temperature",
-               .quantity = roo_transceivers_Quantity_kTemperature},
-          },
-      .actuators_count = 0,
-      .actuators = {}};
+const roo_transceivers::Descriptor* getFakeEnvironmentalSensorDescriptor() {
+  static roo_transceivers::Descriptor descriptor = [] {
+    roo_transceivers::Descriptor result;
+    for (const char* id : {"temperature"}) {
+      auto* entry = result.add_sensors();
+      entry->set_id(id);
+      entry->set_quantity(roo_transceivers::Quantity::kTemperature);
+    }
+    return result;
+  }();
   return &descriptor;
 }
 
@@ -28,7 +28,7 @@ roo_time::Uptime rounded_now() {
 
 roo_transceivers::Measurement measurement(
     const roo_testing_transducers::Thermometer& thermometer) {
-  return roo_transceivers::Measurement(roo_transceivers_Quantity_kTemperature,
+  return roo_transceivers::Measurement(roo_transceivers::Quantity::kTemperature,
                                        rounded_now(), thermometer.read().AsC());
 }
 

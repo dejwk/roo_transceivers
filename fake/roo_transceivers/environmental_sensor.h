@@ -10,7 +10,7 @@
 #include "roo_transceivers/id.h"
 #include "roo_transceivers/universe.h"
 
-const roo_transceivers_Descriptor* getFakeEnvironmentalSensorDescriptor();
+const roo_transceivers::Descriptor* getFakeEnvironmentalSensorDescriptor();
 
 class FakeEnvironmentalSensor : public FakeTransceiver {
  public:

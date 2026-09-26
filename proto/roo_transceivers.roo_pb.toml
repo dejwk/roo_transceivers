@@ -1,0 +1,40 @@
+# Preserve the existing protocol capacities (string bounds exclude the NUL).
+
+[fields."roo_transceivers.Descriptor.Sensor.id"]
+max_bytes = 23
+
+[fields."roo_transceivers.Descriptor.Actuator.id"]
+max_bytes = 23
+
+[fields."roo_transceivers.Descriptor.sensors"]
+max_count = 16
+
+[fields."roo_transceivers.Descriptor.actuators"]
+max_count = 16
+
+[fields."roo_transceivers.ClientMessage.Write.device_locator_schema"]
+max_bytes = 15
+
+[fields."roo_transceivers.ClientMessage.Write.device_locator_id"]
+max_bytes = 23
+
+[fields."roo_transceivers.ClientMessage.Write.device_locator_actuator_id"]
+max_bytes = 23
+
+[fields."roo_transceivers.ServerMessage.DeviceAdded.locator_schema"]
+max_bytes = 15
+
+[fields."roo_transceivers.ServerMessage.DeviceAdded.locator_id"]
+max_bytes = 23
+
+[fields."roo_transceivers.ServerMessage.Reading.device_locator_schema"]
+max_bytes = 15
+
+[fields."roo_transceivers.ServerMessage.Reading.device_locator_id"]
+max_bytes = 23
+
+[fields."roo_transceivers.ServerMessage.Reading.SensorValue.device_locator_sensor_id"]
+max_bytes = 23
+
+[fields."roo_transceivers.ServerMessage.Reading.sensor_values"]
+max_count = 16
