@@ -96,7 +96,7 @@ class UniverseServer : public EventListener {
                         const roo_transceivers::Descriptor& descriptor) {
       for (size_t i = 0; i < descriptor.sensors_size(); ++i) {
         eraseSensorReading(
-            SensorLocator(loc, descriptor.sensors(i).id().c_str()));
+            SensorLocator(loc, descriptor.sensors(i).id().view()));
       }
     }
 

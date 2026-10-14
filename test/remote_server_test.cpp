@@ -32,8 +32,8 @@ void PrintTo(const roo_transceivers::ServerMessage& msg, std::ostream* os) {
     case roo_transceivers::ServerMessage::ContentsCase::kDeviceAdded: {
       (*os) << "  DeviceAdded { locator = "
             << roo_transceivers::DeviceLocator(
-                   msg.device_added().locator_schema().c_str(),
-                   msg.device_added().locator_id().c_str())
+                   msg.device_added().locator_schema().view(),
+                   msg.device_added().locator_id().view())
                    .toString()
             << ", descriptor_key: " << msg.device_added().descriptor_key()
             << " }\n";
@@ -72,8 +72,8 @@ void PrintTo(const roo_transceivers::ServerMessage& msg, std::ostream* os) {
     case roo_transceivers::ServerMessage::ContentsCase::kReading: {
       (*os) << "  Reading { device = "
             << roo_transceivers::DeviceLocator(
-                   msg.reading().device_locator_schema().c_str(),
-                   msg.reading().device_locator_id().c_str())
+                   msg.reading().device_locator_schema().view(),
+                   msg.reading().device_locator_id().view())
                    .toString()
             << ", sensors: [";
       for (size_t i = 0; i < msg.reading().sensor_values_size(); ++i) {
@@ -81,7 +81,9 @@ void PrintTo(const roo_transceivers::ServerMessage& msg, std::ostream* os) {
         if (i > 0) {
           (*os) << ", ";
         }
-        (*os) << "(\"" << reading.device_locator_sensor_id().c_str()
+        (*os) << "(\""
+              << std::string(reading.device_locator_sensor_id().data(),
+                             reading.device_locator_sensor_id().size())
               << "\" : " << reading.value() << ")";
       }
       (*os) << "] }\n";
@@ -197,10 +199,8 @@ MATCHER_P(MsgEq, msg, "") {
     case roo_transceivers::ServerMessage::ContentsCase::kDeviceAdded: {
       const auto& a = arg.device_added();
       const auto& b = msg.device_added();
-      return strncmp(a.locator_schema().c_str(), b.locator_schema().c_str(),
-                     DeviceSchema::kCapacity) == 0 &&
-             strncmp(a.locator_id().c_str(), b.locator_id().c_str(),
-                     DeviceId::kCapacity) == 0 &&
+      return a.locator_schema().view() == b.locator_schema().view() &&
+             a.locator_id().view() == b.locator_id().view() &&
              a.descriptor_key() == b.descriptor_key();
     }
     case roo_transceivers::ServerMessage::ContentsCase::kDeviceRemoved: {
@@ -223,20 +223,17 @@ MATCHER_P(MsgEq, msg, "") {
     case roo_transceivers::ServerMessage::ContentsCase::kReading: {
       const auto& a = arg.reading();
       const auto& b = msg.reading();
-      if (strncmp(a.device_locator_schema().c_str(),
-                  b.device_locator_schema().c_str(),
-                  DeviceSchema::kCapacity) != 0) {
+      if (a.device_locator_schema().view() !=
+          b.device_locator_schema().view()) {
         return false;
       }
-      if (strncmp(a.device_locator_id().c_str(), b.device_locator_id().c_str(),
-                  DeviceId::kCapacity) != 0) {
+      if (a.device_locator_id().view() != b.device_locator_id().view()) {
         return false;
       }
       if (a.sensor_values_size() != b.sensor_values_size()) return false;
       for (size_t i = 0; i < a.sensor_values_size(); ++i) {
-        if (strncmp(a.sensor_values(i).device_locator_sensor_id().c_str(),
-                    b.sensor_values(i).device_locator_sensor_id().c_str(),
-                    SensorId::kCapacity) != 0) {
+        if (a.sensor_values(i).device_locator_sensor_id().view() !=
+            b.sensor_values(i).device_locator_sensor_id().view()) {
           return false;
         }
         if (!(isnan(a.sensor_values(i).value()) &&

@@ -1,3 +1,11 @@
+# Unreleased
+
+- Require roo_pb 0.2.0 and use length-aware string views for protobuf fields.
+  Wire encoding and payload capacities remain unchanged. Rebuild consumers for
+  the updated protobuf storage layout.
+
+---
+
 # roo_transceivers 1.3.0
 
 - **Breaking API change:** Replaced nanopb with `roo_pb` ≥0.1.0, requiring C++17. Migrate to namespaced message types, generated accessors, scoped `Quantity` values, and `roo_pb` serialization.

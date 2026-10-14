@@ -90,11 +90,15 @@ roo_transceivers::Descriptor descriptor = {};
 if (universe.getDeviceDescriptor(device, descriptor)) {
   for (size_t i = 0; i < descriptor.sensors_size(); ++i) {
     Serial.print("sensor id: ");
-    Serial.println(descriptor.sensors(i).id().c_str());
+    roo::string_view id = descriptor.sensors(i).id().view();
+    Serial.write(id.data(), id.size());
+    Serial.println();
   }
   for (size_t i = 0; i < descriptor.actuators_size(); ++i) {
     Serial.print("actuator id: ");
-    Serial.println(descriptor.actuators(i).id().c_str());
+    roo::string_view id = descriptor.actuators(i).id().view();
+    Serial.write(id.data(), id.size());
+    Serial.println();
   }
 }
 ```
@@ -223,12 +227,16 @@ void dumpUniverse(Universe& universe) {
 
     for (size_t i = 0; i < descriptor.sensors_size(); ++i) {
       Serial.print("  sensor: ");
-      Serial.println(descriptor.sensors(i).id().c_str());
+      roo::string_view id = descriptor.sensors(i).id().view();
+      Serial.write(id.data(), id.size());
+      Serial.println();
     }
 
     for (size_t i = 0; i < descriptor.actuators_size(); ++i) {
       Serial.print("  actuator: ");
-      Serial.println(descriptor.actuators(i).id().c_str());
+      roo::string_view id = descriptor.actuators(i).id().view();
+      Serial.write(id.data(), id.size());
+      Serial.println();
     }
     return true;
   });

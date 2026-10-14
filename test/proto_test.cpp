@@ -95,13 +95,14 @@ TEST(ProtoTest, BoundedMessagesRoundTrip) {
   ServerMessage parsed;
   ASSERT_TRUE(parsed.ParseFromArray(buffer, size));
   ASSERT_EQ(parsed.reading().sensor_values_size(), 16u);
-  EXPECT_STREQ(parsed.reading().device_locator_schema().c_str(),
-               schema.c_str());
-  EXPECT_STREQ(parsed.reading().device_locator_id().c_str(), id.c_str());
+  EXPECT_EQ(parsed.reading().device_locator_schema().view(),
+            roo::string_view(schema.c_str()));
+  EXPECT_EQ(parsed.reading().device_locator_id().view(),
+            roo::string_view(id.c_str()));
   for (int i = 0; i < 16; ++i) {
-    EXPECT_STREQ(
-        parsed.reading().sensor_values(i).device_locator_sensor_id().c_str(),
-        id.c_str());
+    EXPECT_EQ(
+        parsed.reading().sensor_values(i).device_locator_sensor_id().view(),
+        roo::string_view(id.c_str()));
     EXPECT_EQ(parsed.reading().sensor_values(i).value(), i);
     EXPECT_EQ(parsed.reading().sensor_values(i).age_ms(),
               static_cast<uint64_t>(i));

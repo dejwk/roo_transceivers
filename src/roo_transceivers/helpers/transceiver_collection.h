@@ -143,10 +143,10 @@ class TransceiverType {
   TransceiverType(roo_transceivers::Descriptor descriptor)
       : descriptor_(std::move(descriptor)) {
     for (size_t i = 0; i < descriptor.sensors_size(); i++) {
-      sensors_[descriptor.sensors(i).id().c_str()] = i;
+      sensors_[descriptor.sensors(i).id().view()] = i;
     }
     for (size_t i = 0; i < descriptor.actuators_size(); i++) {
-      actuators_[descriptor.actuators(i).id().c_str()] = i;
+      actuators_[descriptor.actuators(i).id().view()] = i;
     }
   }
 

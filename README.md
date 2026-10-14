@@ -16,7 +16,7 @@ follow their canonical-source headers when refreshing them.
 
 ## Protocol generation
 
-The protocol uses `roo_pb` 0.1.0 or newer and requires C++17. Bazel and
+The protocol uses `roo_pb` 0.2.0 or newer and requires C++17. Bazel and
 PlatformIO resolve the published dependencies declared in `MODULE.bazel` and
 `library.json`. Arduino users should install `roo_pb` and its dependencies.
 
