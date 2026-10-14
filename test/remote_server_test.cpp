@@ -32,8 +32,8 @@ void PrintTo(const roo_transceivers::ServerMessage& msg, std::ostream* os) {
     case roo_transceivers::ServerMessage::ContentsCase::kDeviceAdded: {
       (*os) << "  DeviceAdded { locator = "
             << roo_transceivers::DeviceLocator(
-                   msg.device_added().locator_schema().view(),
-                   msg.device_added().locator_id().view())
+                   msg.device_added().locator_schema(),
+                   msg.device_added().locator_id())
                    .toString()
             << ", descriptor_key: " << msg.device_added().descriptor_key()
             << " }\n";
@@ -72,8 +72,8 @@ void PrintTo(const roo_transceivers::ServerMessage& msg, std::ostream* os) {
     case roo_transceivers::ServerMessage::ContentsCase::kReading: {
       (*os) << "  Reading { device = "
             << roo_transceivers::DeviceLocator(
-                   msg.reading().device_locator_schema().view(),
-                   msg.reading().device_locator_id().view())
+                   msg.reading().device_locator_schema(),
+                   msg.reading().device_locator_id())
                    .toString()
             << ", sensors: [";
       for (size_t i = 0; i < msg.reading().sensor_values_size(); ++i) {
@@ -199,8 +199,8 @@ MATCHER_P(MsgEq, msg, "") {
     case roo_transceivers::ServerMessage::ContentsCase::kDeviceAdded: {
       const auto& a = arg.device_added();
       const auto& b = msg.device_added();
-      return a.locator_schema().view() == b.locator_schema().view() &&
-             a.locator_id().view() == b.locator_id().view() &&
+      return a.locator_schema() == b.locator_schema() &&
+             a.locator_id() == b.locator_id() &&
              a.descriptor_key() == b.descriptor_key();
     }
     case roo_transceivers::ServerMessage::ContentsCase::kDeviceRemoved: {
@@ -223,17 +223,16 @@ MATCHER_P(MsgEq, msg, "") {
     case roo_transceivers::ServerMessage::ContentsCase::kReading: {
       const auto& a = arg.reading();
       const auto& b = msg.reading();
-      if (a.device_locator_schema().view() !=
-          b.device_locator_schema().view()) {
+      if (a.device_locator_schema() != b.device_locator_schema()) {
         return false;
       }
-      if (a.device_locator_id().view() != b.device_locator_id().view()) {
+      if (a.device_locator_id() != b.device_locator_id()) {
         return false;
       }
       if (a.sensor_values_size() != b.sensor_values_size()) return false;
       for (size_t i = 0; i < a.sensor_values_size(); ++i) {
-        if (a.sensor_values(i).device_locator_sensor_id().view() !=
-            b.sensor_values(i).device_locator_sensor_id().view()) {
+        if (a.sensor_values(i).device_locator_sensor_id() !=
+            b.sensor_values(i).device_locator_sensor_id()) {
           return false;
         }
         if (!(isnan(a.sensor_values(i).value()) &&

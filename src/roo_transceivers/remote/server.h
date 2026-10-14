@@ -95,8 +95,7 @@ class UniverseServer : public EventListener {
     void removeReadings(const DeviceLocator& loc,
                         const roo_transceivers::Descriptor& descriptor) {
       for (size_t i = 0; i < descriptor.sensors_size(); ++i) {
-        eraseSensorReading(
-            SensorLocator(loc, descriptor.sensors(i).id().view()));
+        eraseSensorReading(SensorLocator(loc, descriptor.sensors(i).id()));
       }
     }
 

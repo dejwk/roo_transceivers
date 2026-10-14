@@ -166,8 +166,8 @@ bool UniverseClient::handleServerMessage(
       return handleDescriptorRemoved(msg.descriptor_removed().key());
     }
     case roo_transceivers::ServerMessage::ContentsCase::kDeviceAdded: {
-      DeviceLocator loc(msg.device_added().locator_schema().view(),
-                        msg.device_added().locator_id().view());
+      DeviceLocator loc(msg.device_added().locator_schema(),
+                        msg.device_added().locator_id());
       return handleDeviceAdded(loc, msg.device_added().descriptor_key());
     }
     case roo_transceivers::ServerMessage::ContentsCase::kDeviceRemoved: {
@@ -193,8 +193,8 @@ bool UniverseClient::handleServerMessage(
     }
     case roo_transceivers::ServerMessage::ContentsCase::kReading: {
       auto& payload = msg.reading();
-      DeviceLocator device(payload.device_locator_schema().view(),
-                           payload.device_locator_id().view());
+      DeviceLocator device(payload.device_locator_schema(),
+                           payload.device_locator_id());
       return handleReadings(device, payload.sensor_values().data(),
                             payload.sensor_values_size());
     }
@@ -294,14 +294,13 @@ bool UniverseClient::handleDeviceAdded(const DeviceLocator& locator,
   const roo_transceivers::Descriptor& descriptor = itr->second;
   // Pre-initialize all sensor readings to set quantities.
   for (size_t i = 0; i < descriptor.sensors_size(); ++i) {
-    SensorLocator sensor_locator(locator, descriptor.sensors(i).id().view());
+    SensorLocator sensor_locator(locator, descriptor.sensors(i).id());
     readings_[sensor_locator] = Measurement(descriptor.sensors(i).quantity(),
                                             roo_time::Uptime::Start());
   }
   // Also, register the actuators for fast lookup during write().
   for (size_t i = 0; i < descriptor.actuators_size(); ++i) {
-    ActuatorLocator actuator_locator(locator,
-                                     descriptor.actuators(i).id().view());
+    ActuatorLocator actuator_locator(locator, descriptor.actuators(i).id());
     actuators_.insert(actuator_locator);
   }
   return true;
@@ -329,12 +328,11 @@ bool UniverseClient::handleDeviceRemoved(int prev_index) {
     return false;
   }
   for (size_t i = 0; i < descriptor->sensors_size(); ++i) {
-    SensorLocator sensor_locator(locator, descriptor->sensors(i).id().view());
+    SensorLocator sensor_locator(locator, descriptor->sensors(i).id());
     readings_.erase(sensor_locator);
   }
   for (size_t i = 0; i < descriptor->actuators_size(); ++i) {
-    ActuatorLocator actuator_locator(locator,
-                                     descriptor->actuators(i).id().view());
+    ActuatorLocator actuator_locator(locator, descriptor->actuators(i).id());
     actuators_.erase(actuator_locator);
   }
   // That's it - we're not adding anything to updated_devices_, and
@@ -404,7 +402,7 @@ bool UniverseClient::handleReadings(
   roo_time::Uptime now = roo_time::Uptime::Now();
   for (size_t i = 0; i < readings_count; ++i) {
     SensorLocator sensor_locator(device,
-                                 readings[i].device_locator_sensor_id().view());
+                                 readings[i].device_locator_sensor_id());
     auto itr = readings_.find(sensor_locator);
     if (itr == readings_.end()) {
       LOG(WARNING)

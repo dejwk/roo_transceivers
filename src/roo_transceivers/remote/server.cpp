@@ -104,9 +104,8 @@ void UniverseServer::handleClientMessage(
     }
     case roo_transceivers::ClientMessage::ContentsCase::kWrite: {
       const auto& req = msg.write();
-      ActuatorLocator loc(req.device_locator_schema().view(),
-                          req.device_locator_id().view(),
-                          req.device_locator_actuator_id().view());
+      ActuatorLocator loc(req.device_locator_schema(), req.device_locator_id(),
+                          req.device_locator_actuator_id());
       MLOG(roo_transceivers_remote_server)
           << "Received write request for " << loc << " with val "
           << req.value();
@@ -231,8 +230,7 @@ void UniverseServer::snapshotSensorState(bool new_only) {
     const roo_transceivers::Descriptor& descriptor =
         state_.getDescriptor(dev.locator);
     for (size_t i = 0; i < descriptor.sensors_size(); i++) {
-      SensorLocator sensor_locator(dev.locator,
-                                   descriptor.sensors(i).id().view());
+      SensorLocator sensor_locator(dev.locator, descriptor.sensors(i).id());
       Measurement measurement = universe_.read(sensor_locator);
       if (state_.updateSensorReading(sensor_locator, measurement)) {
         state_.newSensorReadingDelta(sensor_locator, measurement.value(),
