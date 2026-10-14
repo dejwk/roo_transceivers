@@ -261,7 +261,8 @@ bool UniverseClient::handleUpdateEnd() {
 
 bool UniverseClient::handleDescriptorAdded(
     int key, const roo_transceivers::Descriptor& descriptor) {
-  MLOG(roo_transceivers_remote_client) << "Received added descriptor";
+  MLOG(roo_transceivers_remote_client)
+      << "Received added descriptor " << descriptor.DebugString();
   const roo::lock_guard<roo::mutex> lock(state_guard_);
   if (!synced_) return true;
   descriptors_[key] = descriptor;
