@@ -42,8 +42,11 @@ class OneWireUniverse : public SimpleSensorUniverse {
     if (locator.schema() != kOneWireSchema) {
       return Measurement();
     }
+    const roo::string_view device_id = locator.device_id().view();
+    // The parser reads 16 hex characters and does not need a terminator.
+    if (device_id.size() < 16) return Measurement();
     roo_onewire::RomCode rom_code =
-        roo_onewire::RomCode::FromString(locator.device_id().c_str());
+        roo_onewire::RomCode::FromString(device_id.data());
     const roo_onewire::Thermometer* t =
         onewire_.thermometers().thermometerByRomCode(rom_code);
     return Measurement(roo_transceivers::Quantity::kTemperature,

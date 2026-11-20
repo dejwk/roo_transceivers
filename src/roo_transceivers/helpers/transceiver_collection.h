@@ -234,7 +234,7 @@ class SimpleSensor : public Transceiver {
   void getDescriptor(roo_transceivers::Descriptor& descriptor) const override {
     descriptor.Clear();
     auto* sensor = descriptor.add_sensors();
-    sensor->set_id(id_.c_str());
+    sensor->set_id(id_.view());
     sensor->set_quantity(quantity_);
   }
 

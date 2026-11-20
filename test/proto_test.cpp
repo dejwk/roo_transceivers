@@ -126,5 +126,12 @@ TEST(ProtoTest, BoundedMessagesRoundTrip) {
             DescriptorHashFn()(descriptor));
 }
 
+// Verifies the view setter preserves the whole ID, including an embedded NUL.
+TEST(ProtoTest, BinaryDeviceIdOnWire) {
+  ExpectWire(
+      proto::SrvDeviceAdded(DeviceLocator("s", roo::string_view("d\0x", 3)), 7),
+      {0x2a, 0x0a, 0x0a, 0x01, 's', 0x12, 0x03, 'd', 0x00, 'x', 0x18, 0x07});
+}
+
 }  // namespace
 }  // namespace roo_transceivers

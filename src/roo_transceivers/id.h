@@ -32,7 +32,8 @@ class DeviceLocator {
   /// Returns true if schema or device id is set.
   bool isDefined() const { return !schema_.empty() || !device_id().empty(); }
 
-  /// Writes a null-terminated string representation into `buf`.
+  /// Writes the representation into `buf` and appends a final NUL.
+  /// Embedded zero bytes in identifiers are included in the output.
   void write_cstr(char* buf) const;
 
   /// Returns a string representation.
@@ -78,7 +79,8 @@ class SensorLocator {
   /// Returns true if the locator is defined.
   bool isDefined() const { return device_locator().isDefined(); }
 
-  /// Writes a null-terminated string representation into `buf`.
+  /// Writes the representation into `buf` and appends a final NUL.
+  /// Embedded zero bytes in identifiers are included in the output.
   void write_cstr(char* buf) const;
 
   /// Returns a string representation.
@@ -126,7 +128,8 @@ class ActuatorLocator {
   /// Returns true if the locator is defined.
   bool isDefined() const { return device_locator().isDefined(); }
 
-  /// Writes a null-terminated string representation into `buf`.
+  /// Writes the representation into `buf` and appends a final NUL.
+  /// Embedded zero bytes in identifiers are included in the output.
   void write_cstr(char* buf) const;
 
   /// Returns a string representation.
@@ -168,16 +171,17 @@ namespace std {
 template <>
 struct hash<roo_transceivers::DeviceSchema> {
   size_t operator()(const roo_transceivers::DeviceSchema& schema) const {
-    return roo_collections::murmur3_32(schema.c_str(), strlen(schema.c_str()),
-                                       0);
+    const roo::string_view view = schema.view();
+    return roo_collections::murmur3_32(view.data(), view.size(), 0);
   }
 };
 
 template <>
 struct hash<roo_transceivers::DeviceLocator> {
   size_t operator()(const roo_transceivers::DeviceLocator& loc) const {
+    const roo::string_view device_id = loc.device_id().view();
     return roo_collections::murmur3_32(
-        loc.device_id().c_str(), strlen(loc.device_id().c_str()),
+        device_id.data(), device_id.size(),
         std::hash<roo_transceivers::DeviceSchema>()(loc.schema()));
   }
 };
@@ -185,8 +189,9 @@ struct hash<roo_transceivers::DeviceLocator> {
 template <>
 struct hash<roo_transceivers::SensorLocator> {
   size_t operator()(const roo_transceivers::SensorLocator& loc) const {
+    const roo::string_view sensor_id = loc.sensor_id().view();
     return roo_collections::murmur3_32(
-        loc.sensor_id().c_str(), strlen(loc.sensor_id().c_str()),
+        sensor_id.data(), sensor_id.size(),
         std::hash<roo_transceivers::DeviceLocator>()(loc.device_locator()));
   }
 };
@@ -194,8 +199,9 @@ struct hash<roo_transceivers::SensorLocator> {
 template <>
 struct hash<roo_transceivers::ActuatorLocator> {
   size_t operator()(const roo_transceivers::ActuatorLocator& loc) const {
+    const roo::string_view actuator_id = loc.actuator_id().view();
     return roo_collections::murmur3_32(
-        loc.actuator_id().c_str(), strlen(loc.actuator_id().c_str()),
+        actuator_id.data(), actuator_id.size(),
         std::hash<roo_transceivers::DeviceLocator>()(loc.device_locator()));
   }
 };
