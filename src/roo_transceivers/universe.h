@@ -2,6 +2,7 @@
 
 #include <vector>
 
+#include "roo_collections.h"
 #include "roo_collections/flat_small_hash_map.h"
 #include "roo_collections/flat_small_hash_set.h"
 #include "roo_logging.h"

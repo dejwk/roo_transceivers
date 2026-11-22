@@ -2,6 +2,7 @@
 
 #include <string>
 
+#include "roo_collections.h"
 #include "roo_collections/hash.h"
 #include "roo_collections/small_string.h"
 #include "roo_logging.h"

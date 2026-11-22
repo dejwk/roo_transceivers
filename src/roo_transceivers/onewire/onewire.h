@@ -1,7 +1,9 @@
 #pragma once
 
+#include "roo_io.h"
 #include "roo_io/text/string_printf.h"
 #include "roo_onewire.h"
+#include "roo_quantity.h"
 #include "roo_quantity/temperature.h"
 #include "roo_transceivers.h"
 #include "roo_transceivers/helpers/simple_sensor_universe.h"
