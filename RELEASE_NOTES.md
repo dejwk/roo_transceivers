@@ -1,8 +1,10 @@
-# Unreleased
+# roo_transceivers 1.4.0
 
-- Require roo_pb 0.2.0 and use length-aware string views for protobuf fields.
-  Wire encoding and payload capacities remain unchanged. Rebuild consumers for
-  the updated protobuf storage layout.
+- Migrated protobuf string fields to length-aware views and raised the Bazel and PlatformIO requirement to `roo_pb` 1.0.0. The migration preserves wire encoding and payload capacities. Rebuild consumers for the updated protobuf storage layout.
+- Adopted the new `SmallString` API so locator formatting, hashing, and persistent bindings preserve embedded NUL bytes. Existing binding records remain readable. OneWire lookups now reject device IDs shorter than 16 characters before parsing.
+- Added descriptor details to remote-client debug logs and fixed Arduino dependency discovery for nested headers.
+- Updated dependencies to `roo_collections` 2.0.2, `roo_logging` 1.6.1, `roo_prefs` 2.0.4, `roo_threads` 1.4.0, and `roo_time` 2.2.1.
+- Updated Bazel test tooling and CI to `roo_testing` 2.7.0. Added ESP32-S3, ESP32-C3, and RP2040 profile definitions and expanded the local test runner to target nine profiles. The new profiles require explicit Bazel imports.
 
 ---
 
